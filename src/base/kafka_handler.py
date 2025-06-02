@@ -8,6 +8,7 @@ import ast
 import os
 import sys
 import time
+import uuid
 from abc import abstractmethod
 
 import marshmallow_dataclass
@@ -27,6 +28,7 @@ from src.base.utils import kafka_delivery_report, setup_config
 logger = get_logger()
 
 HOSTNAME = os.getenv("HOSTNAME", "default_tid")
+transactional_id = f"producer-{uuid.uuid4()}"   # For running on localhost when HOSTNAME is equal for all producers
 CONSUMER_GROUP_ID = os.getenv("GROUP_ID", "default_gid")
 NUMBER_OF_INSTANCES = int(os.getenv("NUMBER_OF_INSTANCES", 1))
 
@@ -133,7 +135,8 @@ class ExactlyOnceKafkaProduceHandler(KafkaProduceHandler):
 
         conf = {
             "bootstrap.servers": self.brokers,
-            "transactional.id": HOSTNAME,
+            # "transactional.id": HOSTNAME,
+            "transactional.id": transactional_id,
             "enable.idempotence": True,
         }
 
@@ -220,6 +223,8 @@ class KafkaConsumeHandler(KafkaHandler):
         self.brokers = ",".join(
             [f"{broker['hostname']}:{broker['port']}" for broker in KAFKA_BROKERS]
         )
+
+        logger.debug("Kafka ConsumeHandler brokers: %s", self.brokers)
 
         # create consumer
         conf = {

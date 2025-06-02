@@ -412,7 +412,7 @@ class Detector:
 
 def main(one_iteration: bool = False):  # pragma: no cover
     """
-    Creates the :class:`Detector` instance. Starts a loop that continously fetches data.
+    Creates the :class:`Detector` instance. Starts a loop that continuously fetches data.
 
     Args:
         one_iteration (bool): For testing purposes: stops loop after one iteration

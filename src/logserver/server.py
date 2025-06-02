@@ -24,6 +24,7 @@ PRODUCE_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
     "logserver_to_collector"
 ]
 READ_FROM_FILE = config["pipeline"]["log_storage"]["logserver"]["input_file"]
+READ_FROM_FILES = config["pipeline"]["log_storage"]["logserver"]["input_files"]
 KAFKA_BROKERS = ",".join(
     [
         f"{broker['hostname']}:{broker['port']}"
@@ -53,22 +54,22 @@ class LogServer:
         logger.info(
             "LogServer started:\n"
             f"    ⤷  receiving on Kafka topic '{CONSUME_TOPIC}'\n"
-            f"    ⤷  receiving from input file '{READ_FROM_FILE}'\n"
+            f"    ⤷  receiving from input files '{READ_FROM_FILES}'\n"
             f"    ⤷  sending on Kafka topic '{PRODUCE_TOPIC}'"
         )
 
         task_fetch_kafka = asyncio.Task(self.fetch_from_kafka())
-        task_fetch_file = asyncio.Task(self.fetch_from_file())
+        tasks_fetch_files = [asyncio.create_task(self.fetch_from_file(file)) for file in READ_FROM_FILES]
 
         try:
             task = asyncio.gather(
                 task_fetch_kafka,
-                task_fetch_file,
+                *tasks_fetch_files
             )
             await task
         except KeyboardInterrupt:
             task_fetch_kafka.cancel()
-            task_fetch_file.cancel()
+            map(lambda x: x.lower(), tasks_fetch_files)
 
             logger.info("LogServer stopped.")
 
@@ -138,7 +139,7 @@ class LogServer:
                     if not cleaned_line:
                         continue
 
-                    logger.debug(f"From file: '{cleaned_line}'")
+                    logger.debug(f"From {file.name}: '{cleaned_line}'")
 
                     message_id = uuid.uuid4()
                     self.server_logs.insert(

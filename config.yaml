@@ -1,24 +1,27 @@
 logging:
   base:
-    debug: false
+    debug: true
   modules:
     log_storage.logserver:
-      debug: false
+      debug: true
     log_collection.collector:
-      debug: false
+      debug: true
     log_collection.batch_handler:
-      debug: false
+      debug: true
     log_filtering.prefilter:
-      debug: false
+      debug: true
     data_inspection.inspector:
-      debug: false
+      debug: true
     data_analysis.detector:
-      debug: false
+      debug: true
 
 pipeline:
   log_storage:
     logserver:
-      input_file: "/opt/file.txt"
+      #input_file: "/opt/file.txt"
+      input_file: "../../file.txt"
+      input_files: ["/opt/homebrew/etc/logs/2025-05-07/conn.12:31:45-12:32:03.log",
+                    "/opt/homebrew/etc/logs/2025-05-07/dns.12:31:50-12:31:54.log"]
 
   log_collection:
     collector:
@@ -31,6 +34,9 @@ pipeline:
         - [ "record_type", ListItem, [ "A", "AAAA" ] ]
         - [ "response_ip", IpAddress ]
         - [ "size", RegEx, '^\d+b$' ]
+      zeeklog_format:
+        - []
+        - []
     batch_handler:
       batch_size: 10000
       batch_timeout: 30.0
@@ -70,12 +76,14 @@ pipeline:
 
 environment:
   kafka_brokers:
-    - hostname: kafka1
-      port: 8097
-    - hostname: kafka2
-      port: 8098
-    - hostname: kafka3
-      port: 8099
+    #- hostname: kafka1
+    #  port: 8097
+    #- hostname: kafka2
+    #  port: 8098
+    #- hostname: kafka3
+    #  port: 8099
+    - hostname: localhost
+      port: 53869
   kafka_topics:
     pipeline:
       logserver_in: "pipeline-logserver_in"
