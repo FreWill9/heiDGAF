@@ -10,6 +10,7 @@ sys.path.append(os.getcwd())
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.kafka_handler import ExactlyOnceKafkaConsumeHandler
 from src.base.logline_handler import LoglineHandler
+from src.base.logline_handler import ZeekLoglineHandler
 from src.base import utils
 from src.logcollector.batch_handler import BufferedBatchSender
 from src.base.log_config import get_logger
@@ -187,11 +188,20 @@ class LogCollector:
         return f"{normalized_ip_address}_{prefix_length}"
 
 
+class ZeekLogCollector(LogCollector):
+    """Consumes incoming log lines from the :class:`LogServer`. Validates all data fields by type and
+        value, invalid loglines are discarded. All valid loglines are sent to the batch sender.
+    """
+    def __init__(self) -> None:
+        super().__init__()
+        self.logline_handler = ZeekLoglineHandler()
+
+
 def main() -> None:
     """
     Creates the :class:`LogCollector` instance and starts it.
     """
-    collector_instance = LogCollector()
+    collector_instance = ZeekLogCollector()
     asyncio.run(collector_instance.start())
 
 

@@ -144,7 +144,7 @@ class TestSend(unittest.TestCase):
         ):
             self.sut = LogCollector()
 
-    def test_valid_logline(self):
+    def test_valid_logline(self):       # valid?
         timestamp = datetime.datetime(2026, 2, 14, 16, 38, 6, 184006)
         message = "test_message"
 
@@ -161,7 +161,7 @@ class TestSend(unittest.TestCase):
         # Assert
         self.sut.batch_handler.add_message.assert_not_called()
 
-    def test_invalid_logline(self):
+    def test_invalid_logline(self):     # invalid?
         timestamp = datetime.datetime(2026, 2, 14, 16, 38, 6, 184006)
         message = "test_message"
 
@@ -188,7 +188,8 @@ class TestSend(unittest.TestCase):
         # Assert
         self.sut.batch_handler.add_message.assert_called_once_with(
             "192.168.3.0_24",
-            '{"timestamp": "2026-02-14 16:38:06.184006", "status_code": "test_status", "client_ip": "192.168.3.141", "record_type": "test_record_type", "logline_id": "da3aec7f-b355-4a2c-a2f4-2066d49431a5"}',
+            '{"timestamp": "2026-02-14 16:38:06.184006", "status_code": "test_status", "client_ip": "192.168.3.141", '
+            '"record_type": "test_record_type", "logline_id": "da3aec7f-b355-4a2c-a2f4-2066d49431a5"}',
         )
 
 

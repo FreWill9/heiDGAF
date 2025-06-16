@@ -20,8 +20,8 @@ pipeline:
     logserver:
       #input_file: "/opt/file.txt"
       input_file: "../../file.txt"
-      input_files: ["/opt/homebrew/etc/logs/2025-05-07/conn.12:31:45-12:32:03.log",
-                    "/opt/homebrew/etc/logs/2025-05-07/dns.12:31:50-12:31:54.log"]
+      input_files: ["../../files.txt",
+                    "../../zeek_input_dir/current/conn.log"]
 
   log_collection:
     collector:
@@ -34,9 +34,14 @@ pipeline:
         - [ "record_type", ListItem, [ "A", "AAAA" ] ]
         - [ "response_ip", IpAddress ]
         - [ "size", RegEx, '^\d+b$' ]
-      zeeklog_format:
-        - []
-        - []
+      connlog_format:
+        - [ "timestamp", Timestamp, "%Y-%m-%dT%H:%M:%S.%fZ"] # TODO: Zeek output is in unix time (signed int?)
+        - [ "uid", RegEx, '^[0-9a-zA-Z]+$' ]   # Probably "^[0-9a-zA-Z]{18}$" but not sure if len always 18
+        - [ "orig_ip", IpAddress ]
+        - [ "orig_port", PortNumber ]
+        - [ "resp_ip", IpAddress ]
+        - [ "resp_port", PortNumber ]
+        - [ "proto", ListItem, [ "tcp", "udp", "icmp", "unknown_transport" ] ]
     batch_handler:
       batch_size: 10000
       batch_timeout: 30.0
@@ -83,7 +88,7 @@ environment:
     #- hostname: kafka3
     #  port: 8099
     - hostname: localhost
-      port: 53869
+      port:  2323
   kafka_topics:
     pipeline:
       logserver_in: "pipeline-logserver_in"

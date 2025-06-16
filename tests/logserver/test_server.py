@@ -1,14 +1,15 @@
 import asyncio
 import os
-import tempfile
 import unittest
 import uuid
+from tempfile import NamedTemporaryFile
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import UUID
 
 import aiofiles
 
 from src.logserver.server import LogServer, main
+import src.logserver.server as server
 
 LOG_SERVER_IP_ADDR = "192.168.0.1"
 
@@ -46,10 +47,14 @@ class TestStart(unittest.IsolatedAsyncioTestCase):
         mock_logger,
     ):
         self.sut = LogServer()
+        self.temp_file_a, self.temp_file_b = [
+            self.enterContext(NamedTemporaryFile(suffix=".log")) for _ in range(2)
+        ]
 
     @patch("src.logserver.server.LogServer.fetch_from_kafka")
     @patch("src.logserver.server.LogServer.fetch_from_file")
     @patch("src.logserver.server.ClickHouseKafkaSender")
+    @patch("src.logserver.server.READ_FROM_FILES", ["non_existing.log"])
     async def test_start(
         self,
         mock_clickhouse,
@@ -57,15 +62,17 @@ class TestStart(unittest.IsolatedAsyncioTestCase):
         mock_fetch_from_kafka,
     ):
         # Act
+        server.READ_FROM_FILES += [self.temp_file_a.name] + [self.temp_file_b.name]
         await self.sut.start()
 
         # Assert
         mock_fetch_from_kafka.assert_called_once()
-        mock_fetch_from_file.assert_called_once()
+        self.assertEqual(2, mock_fetch_from_file.call_count)    # called once for every existing input file
 
     @patch("src.logserver.server.LogServer.fetch_from_kafka")
     @patch("src.logserver.server.LogServer.fetch_from_file")
     @patch("src.logserver.server.ClickHouseKafkaSender")
+    @patch("src.logserver.server.READ_FROM_FILES", ["non_existing.log"])
     async def test_start_handles_keyboard_interrupt(
         self,
         mock_clickhouse,
@@ -80,12 +87,13 @@ class TestStart(unittest.IsolatedAsyncioTestCase):
             "src.logserver.server.asyncio.gather", side_effect=mock_gather
         ) as mock:
             # Act
+            server.READ_FROM_FILES += [self.temp_file_a.name] + [self.temp_file_b.name]
             await self.sut.start()
 
             # Assert
             mock.assert_called_once()
             mock_fetch_from_kafka.assert_called_once()
-            mock_fetch_from_file.assert_called_once()
+            self.assertEqual(2, mock_fetch_from_file.call_count)    # called once for every existing input file
 
 
 class TestSend(unittest.TestCase):
@@ -185,7 +193,7 @@ class TestFetchFromFile(unittest.IsolatedAsyncioTestCase):
         mock_send_instance = AsyncMock()
         mock_send.return_value = mock_send_instance
 
-        with tempfile.NamedTemporaryFile(
+        with NamedTemporaryFile(
             delete=False, mode="w+", newline=""
         ) as temp_file:
             temp_file_path = temp_file.name

@@ -5,6 +5,7 @@ import sys
 import uuid
 
 import aiofiles
+from pathlib import Path
 
 sys.path.append(os.getcwd())
 from src.base.kafka_handler import (
@@ -51,15 +52,22 @@ class LogServer:
         """
         Starts fetching messages from Kafka and from the input file.
         """
+        logger.info("LogServer started")
+        logger.debug(f"Global READ_FROM_FILES: {READ_FROM_FILES}")
+
+        files = [file for file in READ_FROM_FILES if Path(file).is_file()]
+        if len(files) == 0:
+            logger.warning("None of the given input files found.")
+
         logger.info(
-            "LogServer started:\n"
+            "LogServer:\n"
             f"    ⤷  receiving on Kafka topic '{CONSUME_TOPIC}'\n"
-            f"    ⤷  receiving from input files '{READ_FROM_FILES}'\n"
+            f"    ⤷  receiving from input files '{files}'\n"
             f"    ⤷  sending on Kafka topic '{PRODUCE_TOPIC}'"
         )
 
         task_fetch_kafka = asyncio.Task(self.fetch_from_kafka())
-        tasks_fetch_files = [asyncio.create_task(self.fetch_from_file(file)) for file in READ_FROM_FILES]
+        tasks_fetch_files = [asyncio.create_task(self.fetch_from_file(file)) for file in files]
 
         try:
             task = asyncio.gather(
@@ -78,8 +86,8 @@ class LogServer:
         Sends a received message using Kafka.
 
         Args:
-            message_id (uuid.UUID): UUID of the message
-            message (str): Message to be sent
+            message_id (uuid.UUID): UUID of the message.
+            message (str): Message to be sent.
         """
         self.kafka_produce_handler.produce(topic=PRODUCE_TOPIC, data=message)
         logger.debug(f"Sent: '{message}'")
@@ -117,7 +125,7 @@ class LogServer:
 
     async def fetch_from_file(self, file: str = READ_FROM_FILE) -> None:
         """
-        Continuously checks for new lines at the end of the input file. If one or multiple new lines are found, any
+        Continuously checks for new lines at the end of the input file(s). If one or multiple new lines are found, any
         empty lines are removed and the remaining lines are sent individually.
 
         Args:

@@ -8,13 +8,15 @@ logger = get_logger()
 
 CONFIG = setup_config()
 LOGLINE_FIELDS = CONFIG["pipeline"]["log_collection"]["collector"]["logline_format"]
-REQUIRED_FIELDS = [
+ZEEK_LOGLINE_FIELDS = CONFIG["pipeline"]["log_collection"]["collector"]["connlog_format"]
+REQUIRED_FIELDS = []
+"""[
     "timestamp",
     "status_code",
     "client_ip",
     "record_type",
     "domain_name",
-]
+]"""
 FORBIDDEN_FIELD_NAMES = [
     "logline_id",
     "batch_id",
@@ -61,7 +63,12 @@ class RegEx(FieldType):
         Returns:
             True if the value is valid, False otherwise
         """
-        return True if re.match(self.pattern, value) else False
+        if re.match(self.pattern, value):
+            logger.debug(f"RegEx {value} validated")
+            return True
+        else:
+            logger.debug(f"RegEx {value} invalid")
+            return False
 
 
 class Timestamp(FieldType):
@@ -84,10 +91,13 @@ class Timestamp(FieldType):
             True if the value is valid, False otherwise
         """
         try:
-            datetime.datetime.strptime(value, self.timestamp_format)
+            # datetime.datetime.strptime(value, self.timestamp_format)
+            datetime.datetime.fromtimestamp(float(value)).strftime(self.timestamp_format)
         except ValueError:
+            logger.debug(f"Timestamp {value} invalid")
             return False
 
+        logger.debug(f"Timestamp {value} validated")
         return True
 
     def get_timestamp_as_str(self, value) -> str:
@@ -125,9 +135,38 @@ class IpAddress(FieldType):
         try:
             validate_host(value)
         except ValueError:
+            logger.debug(f"IpAddress {value} invalid")
             return False
 
+        logger.debug(f"IpAddress {value} validated")
         return True
+
+
+class PortNumber(FieldType):
+    """
+    An :cls:`PortNumber` object takes only a name. It is used for port numbers, and checks in the :meth:`validate`
+    method if the value is a correct port number.
+    """
+
+    def __init__(self, name):
+        super().__init__(name)
+
+    def validate(self, value) -> bool:
+        """
+        Validates the input value.
+
+        Args:
+            value: The value to be validated
+
+        Returns:
+            True if the value is valid, False otherwise
+        """
+        if 0 <= int(value) <= 65535:
+            logger.debug(f"PortNumber {value} validated")
+            return True
+        else:
+            logger.debug(f"PortNumber {value} invalid")
+            return False
 
 
 class ListItem(FieldType):
@@ -157,7 +196,12 @@ class ListItem(FieldType):
         Returns:
             True if the value is valid, False otherwise
         """
-        return True if value in self.allowed_list else False
+        if value in self.allowed_list:
+            logger.debug(f"ListItem {value} validated")
+            return True
+        else:
+            logger.debug(f"ListItem {value} invalid")
+            return False
 
     def check_relevance(self, value) -> bool:
         """
@@ -180,13 +224,15 @@ class LoglineHandler:
     Stores the configuration format of loglines and can be used to validate a given logline, i.e. checks if the given
     logline has the format given in the configuration. Can also return the validated logline as dictionary.
     """
+    # Using class variable to minimize redundancy in subclass ZeekLoglineHandler
+    cls_logline_fields = LOGLINE_FIELDS
 
     def __init__(self):
         self.instances_by_name = {}
         self.instances_by_position = {}
         self.number_of_fields = 0
 
-        for field in LOGLINE_FIELDS:
+        for field in self.cls_logline_fields:
             instance = self._create_instance_from_list_entry(field)
 
             if instance.name in FORBIDDEN_FIELD_NAMES:
@@ -225,7 +271,7 @@ class LoglineHandler:
         number_of_entries = len(parts)
 
         # check number of entries
-        if number_of_entries != self.number_of_fields:
+        if number_of_entries != 22:  # self.number_of_fields:
             logger.warning(
                 f"Logline contains {number_of_entries} value(s), not {self.number_of_fields}."
             )
@@ -307,7 +353,7 @@ class LoglineHandler:
             current_instance = self.instances_by_position[i]
             if isinstance(current_instance, ListItem):
                 if not current_instance.check_relevance(
-                    logline_dict[current_instance.name]
+                        logline_dict[current_instance.name]
                 ):
                     relevant = False
                     break
@@ -362,7 +408,25 @@ class LoglineHandler:
 
             instance = cls(name=name)
 
+        elif cls_name == "PortNumber":
+            if len_of_field_list != 2:
+                raise ValueError("Invalid Port Number parameters")
+
+            instance = cls(name=name)
+
         else:
             raise ValueError(f"Unsupported class '{cls_name}'")
 
         return instance
+
+
+class ZeekLoglineHandler(LoglineHandler):
+    """
+    Stores the configuration format of loglines and can be used to validate a given logline, i.e. checks if the given
+    logline has the format given in the configuration. Can also return the validated logline as dictionary.
+    """
+    # class variable override to reduce redundancy
+    cls_logline_fields = ZEEK_LOGLINE_FIELDS
+
+    def __init__(self):
+        super().__init__()
