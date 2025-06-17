@@ -25,12 +25,13 @@ IPV4_PREFIX_LENGTH = config["pipeline"]["log_collection"]["batch_handler"]["subn
 IPV6_PREFIX_LENGTH = config["pipeline"]["log_collection"]["batch_handler"]["subnet_id"][
     "ipv6_prefix_length"
 ]
-REQUIRED_FIELDS = [
+REQUIRED_FIELDS = []
+"""[
     "timestamp",
     "status_code",
     "client_ip",
     "record_type",
-]
+]"""
 BATCH_SIZE = config["pipeline"]["log_collection"]["batch_handler"]["batch_size"]
 CONSUME_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
     "logserver_to_collector"
@@ -122,7 +123,7 @@ class LogCollector:
         for field in REQUIRED_FIELDS:
             additional_fields.pop(field)
 
-        subnet_id = self._get_subnet_id(ipaddress.ip_address(fields.get("client_ip")))
+        subnet_id = self._get_subnet_id(ipaddress.ip_address(fields.get("orig_ip")))    # before "client_ip"
         logline_id = uuid.uuid4()
 
         self.dns_loglines.insert(
@@ -130,9 +131,9 @@ class LogCollector:
                 logline_id=logline_id,
                 subnet_id=subnet_id,
                 timestamp=datetime.datetime.fromisoformat(fields.get("timestamp")),
-                status_code=fields.get("status_code"),
-                client_ip=fields.get("client_ip"),
-                record_type=fields.get("record_type"),
+                # status_code=fields.get("status_code"),
+                # client_ip=fields.get("client_ip"),
+                # record_type=fields.get("record_type"),
                 additional_fields=json.dumps(additional_fields),
             )
         )
@@ -161,7 +162,7 @@ class LogCollector:
         )
 
         self.batch_handler.add_message(subnet_id, json.dumps(message_fields))
-        logger.debug(f"Sent: '{message}'")
+        logger.debug(f"🤩Sent: '{message}'")
 
     @staticmethod
     def _get_subnet_id(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> str:

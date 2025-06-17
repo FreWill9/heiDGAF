@@ -20,7 +20,7 @@ pipeline:
     logserver:
       #input_file: "/opt/file.txt"
       input_file: "../../file.txt"
-      input_files: ["../../files.txt",
+      input_files: ["../../file.txt",
                     "../../zeek_input_dir/current/conn.log"]
 
   log_collection:

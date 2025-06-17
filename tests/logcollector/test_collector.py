@@ -144,7 +144,7 @@ class TestSend(unittest.TestCase):
         ):
             self.sut = LogCollector()
 
-    def test_valid_logline(self):       # valid?
+    def test_invalid_logline(self):
         timestamp = datetime.datetime(2026, 2, 14, 16, 38, 6, 184006)
         message = "test_message"
 
@@ -161,7 +161,7 @@ class TestSend(unittest.TestCase):
         # Assert
         self.sut.batch_handler.add_message.assert_not_called()
 
-    def test_invalid_logline(self):     # invalid?
+    def test_valid_logline(self):
         timestamp = datetime.datetime(2026, 2, 14, 16, 38, 6, 184006)
         message = "test_message"
 
@@ -170,9 +170,9 @@ class TestSend(unittest.TestCase):
         self.sut.logline_handler = mock_logline_handler.return_value
         self.sut.logline_handler.validate_logline_and_get_fields_as_json.return_value = {
             "timestamp": str(timestamp),
-            "status_code": "test_status",
-            "client_ip": "192.168.3.141",
-            "record_type": "test_record_type",
+            # "status_code": "test_status",
+            "orig_ip": "192.168.3.141",     # before "client_ip"
+            # "record_type": "test_record_type",
         }
 
         # Act
@@ -186,10 +186,15 @@ class TestSend(unittest.TestCase):
             self.sut.send(timestamp_in=timestamp, message=message)
 
         # Assert
-        self.sut.batch_handler.add_message.assert_called_once_with(
+        """self.sut.batch_handler.add_message.assert_called_once_with(
             "192.168.3.0_24",
             '{"timestamp": "2026-02-14 16:38:06.184006", "status_code": "test_status", "client_ip": "192.168.3.141", '
             '"record_type": "test_record_type", "logline_id": "da3aec7f-b355-4a2c-a2f4-2066d49431a5"}',
+        )"""
+        self.sut.batch_handler.add_message.assert_called_once_with(
+            "192.168.3.0_24",
+            '{"timestamp": "2026-02-14 16:38:06.184006", "orig_ip": "192.168.3.141", "logline_id": '
+            '"da3aec7f-b355-4a2c-a2f4-2066d49431a5"}',
         )
 
 
@@ -379,7 +384,7 @@ class TestGetSubnetId(unittest.TestCase):
 
 class TestMain(unittest.TestCase):
     @patch("src.logcollector.collector.logger")
-    @patch("src.logcollector.collector.LogCollector")
+    @patch("src.logcollector.collector.ZeekLogCollector")
     @patch("asyncio.run")
     def test_main(self, mock_asyncio_run, mock_instance, mock_logger):
         # Arrange

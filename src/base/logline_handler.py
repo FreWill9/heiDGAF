@@ -110,7 +110,9 @@ class Timestamp(FieldType):
         Returns:
             String of the given timestamp with standard format
         """
-        return str(datetime.datetime.strptime(value, self.timestamp_format).isoformat())
+        # return str(datetime.datetime.strptime(value, self.timestamp_format).isoformat())
+        # had to be changed to parse unix timestamp TODO: testing to keep old functionality
+        return str(datetime.datetime.fromtimestamp(float(value)).strftime(self.timestamp_format))
 
 
 class IpAddress(FieldType):
@@ -271,7 +273,7 @@ class LoglineHandler:
         number_of_entries = len(parts)
 
         # check number of entries
-        if number_of_entries != 22:  # self.number_of_fields:
+        if number_of_entries != 22:  # TODO:....   self.number_of_fields:
             logger.warning(
                 f"Logline contains {number_of_entries} value(s), not {self.number_of_fields}."
             )
