@@ -133,6 +133,8 @@ class TestFetch(unittest.IsolatedAsyncioTestCase):
         mock_send.assert_called_once()
 
 
+@patch("src.logcollector.collector.INPUT_FORMAT_ZEEK", False)   # only includes tests for the original dns logline
+# functionality, TODO: build tests for zeeklog functionality
 class TestSend(unittest.TestCase):
     def setUp(self):
         with (
@@ -171,7 +173,7 @@ class TestSend(unittest.TestCase):
         self.sut.logline_handler.validate_logline_and_get_fields_as_json.return_value = {
             "timestamp": str(timestamp),
             # "status_code": "test_status",
-            "orig_ip": "192.168.3.141",     # before "client_ip"
+            "client_ip": "192.168.3.141",
             # "record_type": "test_record_type",
         }
 
@@ -193,7 +195,7 @@ class TestSend(unittest.TestCase):
         )"""
         self.sut.batch_handler.add_message.assert_called_once_with(
             "192.168.3.0_24",
-            '{"timestamp": "2026-02-14 16:38:06.184006", "orig_ip": "192.168.3.141", "logline_id": '
+            '{"timestamp": "2026-02-14 16:38:06.184006", "client_ip": "192.168.3.141", "logline_id": '
             '"da3aec7f-b355-4a2c-a2f4-2066d49431a5"}',
         )
 
@@ -384,7 +386,7 @@ class TestGetSubnetId(unittest.TestCase):
 
 class TestMain(unittest.TestCase):
     @patch("src.logcollector.collector.logger")
-    @patch("src.logcollector.collector.ZeekLogCollector")
+    @patch("src.logcollector.collector.LogCollector")
     @patch("asyncio.run")
     def test_main(self, mock_asyncio_run, mock_instance, mock_logger):
         # Arrange

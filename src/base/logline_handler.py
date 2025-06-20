@@ -2,7 +2,7 @@ import datetime
 import re
 
 from src.base.log_config import get_logger
-from src.base.utils import setup_config, validate_host
+from src.base.utils import setup_config, validate_host, validate_port
 
 logger = get_logger()
 
@@ -21,6 +21,7 @@ FORBIDDEN_FIELD_NAMES = [
     "logline_id",
     "batch_id",
 ]  # field names that are used internally
+INPUT_FORMAT_ZEEK = CONFIG["environment"]["zeek"]
 
 
 class FieldType:
@@ -79,6 +80,7 @@ class Timestamp(FieldType):
     def __init__(self, name: str, timestamp_format: str):
         super().__init__(name)
         self.timestamp_format = timestamp_format
+        self.input_format_zeek = INPUT_FORMAT_ZEEK
 
     def validate(self, value) -> bool:
         """
@@ -90,12 +92,18 @@ class Timestamp(FieldType):
         Returns:
             True if the value is valid, False otherwise
         """
-        try:
-            # datetime.datetime.strptime(value, self.timestamp_format)
-            datetime.datetime.fromtimestamp(float(value)).strftime(self.timestamp_format)
-        except ValueError:
-            logger.debug(f"Timestamp {value} invalid")
-            return False
+        if self.input_format_zeek:
+            try:
+                datetime.datetime.fromtimestamp(float(value)).strftime(self.timestamp_format)
+            except ValueError:
+                logger.debug(f"Timestamp {value} invalid")
+                return False
+        else:
+            try:
+                datetime.datetime.strptime(value, self.timestamp_format)
+            except ValueError:
+                logger.debug(f"Timestamp {value} invalid")
+                return False
 
         logger.debug(f"Timestamp {value} validated")
         return True
@@ -110,9 +118,10 @@ class Timestamp(FieldType):
         Returns:
             String of the given timestamp with standard format
         """
-        # return str(datetime.datetime.strptime(value, self.timestamp_format).isoformat())
-        # had to be changed to parse unix timestamp TODO: testing to keep old functionality
-        return str(datetime.datetime.fromtimestamp(float(value)).strftime(self.timestamp_format))
+        if self.input_format_zeek:
+            return str(datetime.datetime.fromtimestamp(float(value)).strftime(self.timestamp_format))
+        else:
+            return str(datetime.datetime.strptime(value, self.timestamp_format).isoformat())
 
 
 class IpAddress(FieldType):
@@ -137,10 +146,8 @@ class IpAddress(FieldType):
         try:
             validate_host(value)
         except ValueError:
-            logger.debug(f"IpAddress {value} invalid")
             return False
 
-        logger.debug(f"IpAddress {value} validated")
         return True
 
 
@@ -163,12 +170,16 @@ class PortNumber(FieldType):
         Returns:
             True if the value is valid, False otherwise
         """
-        if 0 <= int(value) <= 65535:
-            logger.debug(f"PortNumber {value} validated")
-            return True
-        else:
-            logger.debug(f"PortNumber {value} invalid")
+        try:
+            validate_port(int(value))
+        except ValueError:
+            if int(value) == 0:     # validate_port() raises ValueError for port 0, but zeek can return this
+                return True
             return False
+        except TypeError:
+            return False
+
+        return True
 
 
 class ListItem(FieldType):
@@ -226,15 +237,18 @@ class LoglineHandler:
     Stores the configuration format of loglines and can be used to validate a given logline, i.e. checks if the given
     logline has the format given in the configuration. Can also return the validated logline as dictionary.
     """
-    # Using class variable to minimize redundancy in subclass ZeekLoglineHandler
-    cls_logline_fields = LOGLINE_FIELDS
 
     def __init__(self):
         self.instances_by_name = {}
         self.instances_by_position = {}
         self.number_of_fields = 0
 
-        for field in self.cls_logline_fields:
+        if INPUT_FORMAT_ZEEK:
+            self.logline_fields = ZEEK_LOGLINE_FIELDS
+        else:
+            self.logline_fields = LOGLINE_FIELDS
+
+        for field in self.logline_fields:
             instance = self._create_instance_from_list_entry(field)
 
             if instance.name in FORBIDDEN_FIELD_NAMES:
@@ -272,12 +286,12 @@ class LoglineHandler:
         parts = logline.split()
         number_of_entries = len(parts)
 
-        # check number of entries
-        if number_of_entries != 22:  # TODO:....   self.number_of_fields:
+        # check number of entries TODO: bring this back
+        """if number_of_entries != self.number_of_fields:
             logger.warning(
                 f"Logline contains {number_of_entries} value(s), not {self.number_of_fields}."
             )
-            return False
+            return False"""
 
         valid_values = []
         for i in range(self.number_of_fields):
@@ -420,15 +434,3 @@ class LoglineHandler:
             raise ValueError(f"Unsupported class '{cls_name}'")
 
         return instance
-
-
-class ZeekLoglineHandler(LoglineHandler):
-    """
-    Stores the configuration format of loglines and can be used to validate a given logline, i.e. checks if the given
-    logline has the format given in the configuration. Can also return the validated logline as dictionary.
-    """
-    # class variable override to reduce redundancy
-    cls_logline_fields = ZEEK_LOGLINE_FIELDS
-
-    def __init__(self):
-        super().__init__()

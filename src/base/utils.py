@@ -54,9 +54,10 @@ def validate_host(
     try:
         host = ipaddress.ip_address(host)
     except Exception as err:
+        logger.debug(f"IP address {host} invalid")
         raise ValueError(f"Invalid host: {host}, {err=}")
 
-    logger.debug(f"Host {host} is valid.")
+    logger.debug(f"Host {host} validated.")
     return host
 
 
@@ -76,12 +77,14 @@ def validate_port(port: int) -> int:
     """
     logger.debug(f"Validating port {port}...")
     if not isinstance(port, int):
-        raise TypeError
+        logger.debug(f"Port {port} invalid")
+        raise TypeError(f"Port must be integer, got {type(port)}")
 
     if not (1 <= port <= 65535):
+        logger.debug(f"Port {port} invalid")
         raise ValueError(f"Invalid port: {port}")
 
-    logger.debug(f"Port {port} is valid.")
+    logger.debug(f"Port {port} validated.")
     return port
 
 

@@ -24,7 +24,6 @@ CONSUME_TOPIC = config["environment"]["kafka_topics"]["pipeline"]["logserver_in"
 PRODUCE_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
     "logserver_to_collector"
 ]
-READ_FROM_FILE = config["pipeline"]["log_storage"]["logserver"]["input_file"]
 READ_FROM_FILES = config["pipeline"]["log_storage"]["logserver"]["input_files"]
 KAFKA_BROKERS = ",".join(
     [
@@ -123,7 +122,7 @@ class LogServer:
 
             self.send(message_id, value)
 
-    async def fetch_from_file(self, file: str = READ_FROM_FILE) -> None:
+    async def fetch_from_file(self, file: str) -> None:
         """
         Continuously checks for new lines at the end of the input file(s). If one or multiple new lines are found, any
         empty lines are removed and the remaining lines are sent individually.

@@ -10,7 +10,6 @@ sys.path.append(os.getcwd())
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.kafka_handler import ExactlyOnceKafkaConsumeHandler
 from src.base.logline_handler import LoglineHandler
-from src.base.logline_handler import ZeekLoglineHandler
 from src.base import utils
 from src.logcollector.batch_handler import BufferedBatchSender
 from src.base.log_config import get_logger
@@ -36,6 +35,7 @@ BATCH_SIZE = config["pipeline"]["log_collection"]["batch_handler"]["batch_size"]
 CONSUME_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
     "logserver_to_collector"
 ]
+INPUT_FORMAT_ZEEK = config["environment"]["zeek"]
 
 
 class LogCollector:
@@ -123,7 +123,10 @@ class LogCollector:
         for field in REQUIRED_FIELDS:
             additional_fields.pop(field)
 
-        subnet_id = self._get_subnet_id(ipaddress.ip_address(fields.get("orig_ip")))    # before "client_ip"
+        if INPUT_FORMAT_ZEEK:
+            subnet_id = self._get_subnet_id(ipaddress.ip_address(fields.get("orig_ip")))
+        else:
+            subnet_id = self._get_subnet_id(ipaddress.ip_address(fields.get("client_ip")))
         logline_id = uuid.uuid4()
 
         self.dns_loglines.insert(
@@ -162,7 +165,7 @@ class LogCollector:
         )
 
         self.batch_handler.add_message(subnet_id, json.dumps(message_fields))
-        logger.debug(f"🤩Sent: '{message}'")
+        logger.debug(f"Sent: '{message}'")
 
     @staticmethod
     def _get_subnet_id(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> str:
@@ -189,20 +192,11 @@ class LogCollector:
         return f"{normalized_ip_address}_{prefix_length}"
 
 
-class ZeekLogCollector(LogCollector):
-    """Consumes incoming log lines from the :class:`LogServer`. Validates all data fields by type and
-        value, invalid loglines are discarded. All valid loglines are sent to the batch sender.
-    """
-    def __init__(self) -> None:
-        super().__init__()
-        self.logline_handler = ZeekLoglineHandler()
-
-
 def main() -> None:
     """
     Creates the :class:`LogCollector` instance and starts it.
     """
-    collector_instance = ZeekLogCollector()
+    collector_instance = LogCollector()
     asyncio.run(collector_instance.start())
 
 

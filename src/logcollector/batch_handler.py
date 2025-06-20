@@ -69,7 +69,7 @@ class BufferedBatch:
 
         Args:
             key (str): Key to which the message is added
-            logline_id (uuid.UUID): Logline ID of the message
+            logline_id (uuid.UUID): Logline ID of the message.
             message (str): Message to be added
         """
         if key in self.batch:  # key already has messages associated

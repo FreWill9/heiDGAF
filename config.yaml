@@ -18,8 +18,6 @@ logging:
 pipeline:
   log_storage:
     logserver:
-      #input_file: "/opt/file.txt"
-      input_file: "../../file.txt"
       input_files: ["../../file.txt",
                     "../../zeek_input_dir/current/conn.log"]
 
@@ -80,6 +78,7 @@ pipeline:
       batch_timeout: 2.0
 
 environment:
+  zeek: false  # choose if input format is given in zeek logs or dns logs, true -> zeek, false -> dns
   kafka_brokers:
     #- hostname: kafka1
     #  port: 8097
