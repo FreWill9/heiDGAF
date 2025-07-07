@@ -45,6 +45,7 @@ KAFKA_BROKERS = ",".join(
         for broker in config["environment"]["kafka_brokers"]
     ]
 )
+INPUT_FORMAT_ZEEK = config["environment"]["zeek"]
 
 VALID_UNIVARIATE_MODELS = [
     "KNNDetector",
@@ -129,6 +130,8 @@ class Inspector:
             self.end_timestamp = data.end_timestamp
             self.messages = data.data
             self.key = key
+            logger.warning(f"Data: {self.messages},\n "
+                           f"begin/end timestamp: {self.begin_timestamp} - {self.end_timestamp}")
 
         self.batch_timestamps.insert(
             dict(
@@ -235,7 +238,7 @@ class Inspector:
                     .astype(f"timedelta64[{TIME_TYPE}]")
                     .astype(int)
                 )
-                size_sums[time_index] = np.sum(sizes[idx : idx + count])
+                size_sums[time_index] = np.sum(sizes[idx: idx + count])
                 counts[time_index] = count
 
             # Calculate the mean packet size for each millisecond (ignore division by zero warnings)
@@ -250,7 +253,7 @@ class Inspector:
         return mean_sizes.reshape(-1, 1)
 
     def _count_errors(self, messages: list, begin_timestamp, end_timestamp):
-        """Counts occurances of messages between two timestamps given a time step.
+        """Counts occurrences of messages between two timestamps given a time step.
         By default, 1 ms time step is applied. Time steps are adjustable by "time_type" and "time_range"
         in config.yaml.
 
@@ -275,16 +278,23 @@ class Inspector:
         timestamps = timestamps[sorted_indices]
 
         logger.debug("Set min_date and max_date")
-        min_date = np.datetime64(begin_timestamp)
-        max_date = np.datetime64(end_timestamp)
+        # min_date = np.datetime64(begin_timestamp)
+        # max_date = np.datetime64(end_timestamp)
+        try:
+            min_date = np.min(timestamps)
+            max_date = np.max(timestamps)
+        except ValueError:
+            min_date = np.datetime64("2025-01-01T00:00:00.000000")      # temporary fix, TODO: timestamp problem
+            max_date = np.datetime64("2025-01-01T00:00:00.000000")
+        logger.warning(f"{min_date} to {max_date}")
 
         logger.debug(
-            "Generate the time range from min_date to max_date with 1ms interval"
+            "Generate the time range from min_date to max_date with given interval"
         )
         # Adding np.timedelta adds end time to time_range
         time_range = np.arange(
             min_date,
-            max_date + np.timedelta64(TIME_RANGE, TIME_TYPE),
+            max_date + np.timedelta64(2*TIME_RANGE, TIME_TYPE),         # temporary fix, TODO: timestamp problem
             np.timedelta64(TIME_RANGE, TIME_TYPE),
         )
 
@@ -315,7 +325,7 @@ class Inspector:
 
     def inspect(self):
         """Runs anomaly detection on given StreamAD Model on either univariate, multivariate data, or as an ensemble."""
-        if MODELS == None or len(MODELS) == 0:
+        if MODELS is None or len(MODELS) == 0:
             logger.warning("No model ist set!")
             raise NotImplementedError(f"No model is set!")
         if len(MODELS) > 1:
@@ -365,7 +375,7 @@ class Inspector:
         for x in stream.iter_item():
             score = self.models[0].fit_score(x)
             # noqa
-            if score != None:
+            if score is not None:
                 self.anomalies.append(score)
             else:
                 self.anomalies.append(0)
@@ -393,7 +403,7 @@ class Inspector:
             # TODO Calibrators are missing
             score = self.ensemble.ensemble(scores)
             # noqa
-            if score != None:
+            if score is not None:
                 self.anomalies.append(score)
             else:
                 self.anomalies.append(0)
@@ -427,7 +437,7 @@ class Inspector:
                 self.anomalies.append(0)
 
     def _get_models(self, models):
-        if hasattr(self, "models") and self.models != None and self.models != []:
+        if hasattr(self, "models") and self.models is not None and self.models != []:
             logger.info("All models have been successfully loaded!")
             return
 
@@ -476,15 +486,23 @@ class Inspector:
             np.greater_equal(np.array(self.anomalies), SCORE_THRESHOLD)
         )
         if total_anomalies / len(self.X) > ANOMALY_THRESHOLD:  # subnet is suspicious
+            logger.debug("🧐subnet is suspicious!")
             logger.info("Sending anomalies to detector for further analysis.")
             buckets = {}
 
             for message in self.messages:
-                if message["client_ip"] in buckets.keys():
-                    buckets[message["client_ip"]].append(message)
+                if INPUT_FORMAT_ZEEK:
+                    if message["orig_ip"] in buckets.keys():
+                        buckets[message["orig_ip"]].append(message)
+                    else:
+                        buckets[message["orig_ip"]] = []
+                        buckets.get(message["orig_ip"]).append(message)
                 else:
-                    buckets[message["client_ip"]] = []
-                    buckets.get(message["client_ip"]).append(message)
+                    if message["client_ip"] in buckets.keys():
+                        buckets[message["client_ip"]].append(message)
+                    else:
+                        buckets[message["client_ip"]] = []
+                        buckets.get(message["client_ip"]).append(message)
 
             for key, value in buckets.items():
                 logger.info(f"Sending anomalies to detector for {key}.")
@@ -526,6 +544,7 @@ class Inspector:
                     key=key,
                 )
         else:  # subnet is not suspicious
+            logger.debug("🥳subnet is not suspicious")
             self.batch_timestamps.insert(
                 dict(
                     batch_id=self.batch_id,

@@ -98,6 +98,7 @@ class SimpleKafkaProduceHandler(KafkaProduceHandler):
             "bootstrap.servers": self.brokers,
             "enable.idempotence": False,
             "acks": "1",
+            'broker.address.family': 'v4',      # fixes weird bug on local machine
         }
 
         super().__init__(conf)

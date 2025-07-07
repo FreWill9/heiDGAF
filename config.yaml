@@ -33,8 +33,8 @@ pipeline:
         - [ "response_ip", IpAddress ]
         - [ "size", RegEx, '^\d+b$' ]
       connlog_format:
-        - [ "timestamp", Timestamp, "%Y-%m-%dT%H:%M:%S.%fZ"] # TODO: Zeek output is in unix time (signed int?)
-        - [ "uid", RegEx, '^[0-9a-zA-Z]+$' ]   # Probably "^[0-9a-zA-Z]{18}$" but not sure if len always 18
+        - [ "timestamp", Timestamp, "%Y-%m-%dT%H:%M:%S.%fZ"]
+        - [ "uid", RegEx, '^[0-9a-zA-Z]+$' ]
         - [ "orig_ip", IpAddress ]
         - [ "orig_port", PortNumber ]
         - [ "resp_ip", IpAddress ]
@@ -78,7 +78,7 @@ pipeline:
       batch_timeout: 2.0
 
 environment:
-  zeek: false  # choose if input format is given in zeek logs or dns logs, true -> zeek, false -> dns
+  zeek: true  # choose if input format is given in zeek logs or dns logs, true -> zeek, false -> dns
   kafka_brokers:
     #- hostname: kafka1
     #  port: 8097

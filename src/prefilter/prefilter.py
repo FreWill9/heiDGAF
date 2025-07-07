@@ -83,6 +83,8 @@ class Prefilter:
             self.begin_timestamp = data.begin_timestamp
             self.end_timestamp = data.end_timestamp
             self.unfiltered_data = data.data
+            logger.warning(f"unfiltered data: {self.unfiltered_data}")
+            logger.warning(f"timestamps: {self.begin_timestamp} - {self.end_timestamp}")
 
         self.batch_timestamps.insert(
             dict(

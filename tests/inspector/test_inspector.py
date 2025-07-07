@@ -242,6 +242,7 @@ class TestDataFunction(unittest.TestCase):
             begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
         )
         messages = [data]
+
         np.testing.assert_array_equal(
             np.asarray([[1.0], [0.0]]),
             sut._count_errors(messages, begin_timestamp, end_timestamp),
@@ -291,6 +292,7 @@ class TestDataFunction(unittest.TestCase):
         data["timestamp"] = datetime.strftime(
             begin_timestamp + timedelta(0, 0, 1), TIMESTAMP_FORMAT
         )
+
         np.testing.assert_array_equal(
             np.asarray([[0.0], [0.0]]),
             sut._count_errors([], begin_timestamp, end_timestamp),
@@ -990,6 +992,7 @@ class TestSend(unittest.TestCase):
     @patch("src.inspector.inspector.ExactlyOnceKafkaConsumeHandler")
     @patch("src.inspector.inspector.SCORE_THRESHOLD", 0.1)
     @patch("src.inspector.inspector.ANOMALY_THRESHOLD", 0.01)
+    @patch("src.inspector.inspector.INPUT_FORMAT_ZEEK", False)
     @patch("src.inspector.inspector.ClickHouseKafkaSender")
     def test_send(
         self,
