@@ -286,12 +286,12 @@ class LoglineHandler:
         parts = logline.split()
         number_of_entries = len(parts)
 
-        # check number of entries TODO: bring this back
-        """if number_of_entries != self.number_of_fields:
+        # check number of entries TODO: make < to == by validating all fields
+        if number_of_entries < self.number_of_fields:
             logger.warning(
                 f"Logline contains {number_of_entries} value(s), not {self.number_of_fields}."
             )
-            return False"""
+            return False
 
         valid_values = []
         for i in range(self.number_of_fields):

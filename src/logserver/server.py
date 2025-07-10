@@ -122,19 +122,60 @@ class LogServer:
 
             self.send(message_id, value)
 
-    async def fetch_from_file(self, file: str) -> None:
+    async def get_inode(self, path):
+        try:
+            return os.stat(path).st_ino
+        except FileNotFoundError:
+            return None
+
+    async def wait_for_file(self, path, timeout=10):
+        """Wait until file appears after rotation"""
+        for _ in range(int(timeout * 10)):
+            if os.path.exists(path):
+                return
+            await asyncio.sleep(0.1)
+
+    async def fetch_from_file(self, file_path: str) -> None:
         """
         Continuously checks for new lines at the end of the input file(s). If one or multiple new lines are found, any
         empty lines are removed and the remaining lines are sent individually.
 
         Args:
-            file (str): Filename of the file to be read
+            file_path (str): Filename of the file to be read
         """
-        async with aiofiles.open(file, mode="r") as file:
-            await file.seek(0, 2)  # jump to end of file
+        last_inode = await self.get_inode(file_path)
+        file = None
 
+        async def open_and_seek():
+            f = await aiofiles.open(file_path, mode="r")
+            await f.seek(0, os.SEEK_END)
+            return f
+
+        if last_inode is not None:
+            file = await open_and_seek()
+
+        try:
             while True:
-                lines = await file.readlines()
+                current_inode = await self.get_inode(file_path)
+
+                if current_inode is None:
+                    # File temporarily missing (probably during rotation), retry later
+                    logger.debug(f"Log temporarily missing, probably due to rotation")
+                    await asyncio.sleep(0.5)        # TODO: increase sleep over time when log does not appear?
+                    continue
+
+                if current_inode != last_inode:
+                    # Detected file rotation
+                    logger.info(f"Log rotation detected for {file_path}")
+                    if file:
+                        await file.close()
+                    file = await open_and_seek()
+                    last_inode = current_inode
+
+                if file:
+                    lines = await file.readlines()
+                else:
+                    lines = None
 
                 if not lines:
                     await asyncio.sleep(0.1)
@@ -158,6 +199,9 @@ class LogServer:
                     )
 
                     self.send(message_id, cleaned_line)
+        finally:
+            if file:
+                await file.close()
 
 
 def main() -> None:
