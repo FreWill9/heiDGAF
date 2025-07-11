@@ -7,7 +7,7 @@ import uuid
 import aiofiles
 from pathlib import Path
 
-sys.path.append(os.getcwd())
+sys.path.append(os.getcwd())    # noqa: E402
 from src.base.kafka_handler import (
     SimpleKafkaConsumeHandler,
     ExactlyOnceKafkaProduceHandler,
@@ -128,13 +128,6 @@ class LogServer:
         except FileNotFoundError:
             return None
 
-    async def wait_for_file(self, path, timeout=10):
-        """Wait until file appears after rotation"""
-        for _ in range(int(timeout * 10)):
-            if os.path.exists(path):
-                return
-            await asyncio.sleep(0.1)
-
     async def fetch_from_file(self, file_path: str) -> None:
         """
         Continuously checks for new lines at the end of the input file(s). If one or multiple new lines are found, any
@@ -146,13 +139,14 @@ class LogServer:
         last_inode = await self.get_inode(file_path)
         file = None
 
-        async def open_and_seek():
+        async def open_and_seek(seek_end: bool = False):
             f = await aiofiles.open(file_path, mode="r")
-            await f.seek(0, os.SEEK_END)
+            if seek_end:
+                await f.seek(0, os.SEEK_END)
             return f
 
         if last_inode is not None:
-            file = await open_and_seek()
+            file = await open_and_seek(seek_end=True)
 
         try:
             while True:
@@ -161,7 +155,7 @@ class LogServer:
                 if current_inode is None:
                     # File temporarily missing (probably during rotation), retry later
                     logger.debug(f"Log temporarily missing, probably due to rotation")
-                    await asyncio.sleep(0.5)        # TODO: increase sleep over time when log does not appear?
+                    await asyncio.sleep(0.5)
                     continue
 
                 if current_inode != last_inode:
@@ -169,7 +163,7 @@ class LogServer:
                     logger.info(f"Log rotation detected for {file_path}")
                     if file:
                         await file.close()
-                    file = await open_and_seek()
+                    file = await open_and_seek(seek_end=False)
                     last_inode = current_inode
 
                 if file:
