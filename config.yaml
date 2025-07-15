@@ -97,4 +97,6 @@ environment:
       inspector_to_detector: "pipeline-inspector_to_detector"
   monitoring:
     clickhouse_server:
-      hostname: clickhouse-server
+      hostname: localhost   # clickhouse-server
+      username: "default"
+      password: ""

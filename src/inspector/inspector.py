@@ -130,8 +130,6 @@ class Inspector:
             self.end_timestamp = data.end_timestamp
             self.messages = data.data
             self.key = key
-            logger.warning(f"Data: {self.messages},\n "
-                           f"begin/end timestamp: {self.begin_timestamp} - {self.end_timestamp}")
 
         self.batch_timestamps.insert(
             dict(
@@ -286,7 +284,6 @@ class Inspector:
         except ValueError:
             min_date = np.datetime64("2025-01-01T00:00:00.000000")      # temporary fix, TODO: timestamp problem
             max_date = np.datetime64("2025-01-01T00:00:00.000000")
-        logger.warning(f"{min_date} to {max_date}")
 
         logger.debug(
             "Generate the time range from min_date to max_date with given interval"

@@ -15,9 +15,15 @@ from src.base.utils import setup_config
 logger = get_logger()
 
 CONFIG = setup_config()
-CREATE_TABLES_DIRECTORY = "docker/create_tables"  # TODO: Get from config
+CREATE_TABLES_DIRECTORY = "../../docker/create_tables"  # TODO: Get from config
 CLICKHOUSE_HOSTNAME = CONFIG["environment"]["monitoring"]["clickhouse_server"][
     "hostname"
+]
+CLICKHOUSE_USERNAME = CONFIG["environment"]["monitoring"]["clickhouse_server"][
+    "username"
+]
+CLICKHOUSE_PASSWORD = CONFIG["environment"]["monitoring"]["clickhouse_server"][
+    "password"
 ]
 
 
@@ -31,7 +37,11 @@ def prepare_all_tables():
             file_path = os.path.join(CREATE_TABLES_DIRECTORY, filename)
             sql_content = _load_contents(file_path)
 
-            with clickhouse_connect.get_client(host=CLICKHOUSE_HOSTNAME) as client:
+            with clickhouse_connect.get_client(
+                    host=CLICKHOUSE_HOSTNAME,
+                    username=CLICKHOUSE_USERNAME,
+                    password=CLICKHOUSE_PASSWORD
+            ) as client:
                 try:
                     client.command(sql_content)
                 except Exception as e:
@@ -84,6 +94,10 @@ class MonitoringAgent:
 
 
 def main():
+    try:
+        prepare_all_tables()
+    except Exception as e:
+        logger.warning(f"Table creation skipped or failed: {e}.")
     clickhouse_consumer = MonitoringAgent()
     asyncio.run(clickhouse_consumer.start())
 

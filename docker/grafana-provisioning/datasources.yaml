@@ -1,13 +1,16 @@
 apiVersion: 1
-
 datasources:
   - name: ClickHouse
     type: grafana-clickhouse-datasource
+    access: proxy
+    url: http://clickhouse:8123
+    database: default
+    basicAuth: false
+    isDefault: true
     jsonData:
-      host: clickhouse-server
-      port: 9000
-
-      protocol: native
-
-      username: default
-      tlsSkipVerify: false
+      host: clickhouse                # <-- populate the plugin’s “Host” field
+      port: 8123                      # <-- plugin’s “Port”
+      protocol: http
+      defaultDatabase: default
+      tlsSkipVerify: true
+      httpMode: GET

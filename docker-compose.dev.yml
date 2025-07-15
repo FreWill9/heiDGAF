@@ -1,0 +1,32 @@
+services:
+  clickhouse:
+    container_name: clickhouse
+    image: clickhouse/clickhouse-server:24.3.12.75-alpine
+    ports:
+      - "8123:8123"   # HTTP interface for Grafana
+      - "9000:9000"   # Native TCP interface (optional)
+    volumes:
+      - ./docker/create_tables:/docker-entrypoint-initdb.d
+      - clickhouse_data:/var/lib/clickhouse
+    restart: unless-stopped
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./docker/grafana-provisioning/dashboards/dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml
+      - ./docker/grafana-provisioning/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+      - ./docker/grafana-provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - grafana_data:/var/lib/grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      # install the official ClickHouse plugin (v4.10.1 is the latest as of July 2025)
+      GF_INSTALL_PLUGINS: grafana-clickhouse-datasource
+    restart: unless-stopped
+
+volumes:
+  clickhouse_data:
+  grafana_data:

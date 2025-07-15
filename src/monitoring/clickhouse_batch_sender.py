@@ -18,6 +18,12 @@ CONFIG = setup_config()
 CLICKHOUSE_HOSTNAME = CONFIG["environment"]["monitoring"]["clickhouse_server"][
     "hostname"
 ]
+CLICKHOUSE_USERNAME = CONFIG["environment"]["monitoring"]["clickhouse_server"][
+    "username"
+]
+CLICKHOUSE_PASSWORD = CONFIG["environment"]["monitoring"]["clickhouse_server"][
+    "password"
+]
 BATCH_SIZE = CONFIG["pipeline"]["monitoring"]["clickhouse_connector"]["batch_size"]
 BATCH_TIMEOUT = CONFIG["pipeline"]["monitoring"]["clickhouse_connector"][
     "batch_timeout"
@@ -181,6 +187,8 @@ class ClickHouseBatchSender:
         self.batch = {key: [] for key in self.tables}
         self._client = clickhouse_connect.get_client(
             host=CLICKHOUSE_HOSTNAME,
+            username=CLICKHOUSE_USERNAME,
+            password=CLICKHOUSE_PASSWORD
         )
         self.lock = Lock()
 
