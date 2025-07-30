@@ -21,9 +21,9 @@ services:
       - ./docker/grafana-provisioning/dashboards:/etc/grafana/provisioning/dashboards
       - grafana_data:/var/lib/grafana
     environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: admin
-      # install the official ClickHouse plugin (v4.10.1 is the latest as of July 2025)
+      GF_SECURITY_ADMIN_USER: heiDGAF
+      GF_SECURITY_ADMIN_PASSWORD: sYrxoc-gezkov-kasfa4
+      # install the official Grafana-ClickHouse plugin (v4.10.1 is the latest as of July 2025)
       GF_INSTALL_PLUGINS: grafana-clickhouse-datasource
     restart: unless-stopped
 

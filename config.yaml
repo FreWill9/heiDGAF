@@ -19,7 +19,11 @@ pipeline:
   log_storage:
     logserver:
       input_files: ["../../file.txt",
-                    "../../zeek_input_dir/current/conn.log"]
+                    # "../../zeek_input_dir/current/conn.log",
+                    # "../../zeek_input_dir/batch/conn.log",
+                    # "../../zeek_input_dir/current/dns.log",
+                    "../../zeek_input_dir/batch/dns.log"
+      ]
 
   log_collection:
     collector:
@@ -40,8 +44,25 @@ pipeline:
         - [ "resp_ip", IpAddress ]
         - [ "resp_port", PortNumber ]
         - [ "proto", ListItem, [ "tcp", "udp", "icmp", "unknown_transport" ] ]
+      dnslog_format:
+        - [ "timestamp", Timestamp, "%Y-%m-%dT%H:%M:%S.%fZ" ]
+        - [ "uid", RegEx, '^[0-9a-zA-Z]+$' ]
+        - [ "orig_ip", IpAddress ]
+        - [ "orig_port", PortNumber ]
+        - [ "resp_ip", IpAddress ]
+        - [ "resp_port", PortNumber ]
+        - [ "proto", ListItem, [ "tcp", "udp", "icmp", "unknown_transport" ] ]
+        - [ "trans_id", ZeekCount ]
+        - [ "rtt", ZeekInterval ]
+        - [ "query", RegEx, '^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$']
+        - [ "qclass", ZeekCount ]
+        - [ "qclass_name", ZeekString ]
+        - [ "qtype", ZeekCount ]
+        - [ "qtype_name", ZeekString ]
+        - [ "rcode", ZeekCount ]
+        - [ "rcode_name", ZeekString]
     batch_handler:
-      batch_size: 10000
+      batch_size: 1000  # 10000
       batch_timeout: 30.0
       subnet_id:
         ipv4_prefix_length: 24

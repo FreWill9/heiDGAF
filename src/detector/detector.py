@@ -11,7 +11,7 @@ import numpy as np
 import requests
 from numpy import median
 
-sys.path.append(os.getcwd())
+sys.path.append(os.getcwd())    # noqa: E402
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.utils import setup_config
 from src.base.kafka_handler import (
@@ -33,6 +33,7 @@ THRESHOLD = config["pipeline"]["data_analysis"]["detector"]["threshold"]
 CONSUME_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
     "inspector_to_detector"
 ]
+INPUT_FORMAT_ZEEK = config["environment"]["zeek"]
 
 
 class WrongChecksum(Exception):  # pragma: no cover
@@ -303,9 +304,15 @@ class Detector:
         logger.info("Start detecting malicious requests.")
         for message in self.messages:
             # TODO predict all messages
-            y_pred = self.model.predict_proba(
-                self._get_features(message["domain_name"])
-            )
+            logger.warning(message)
+            if INPUT_FORMAT_ZEEK:
+                y_pred = self.model.predict_proba(
+                    self._get_features(message["query"])
+                )
+            else:
+                y_pred = self.model.predict_proba(
+                    self._get_features(message["domain_name"])
+                )
             logger.info(f"Prediction: {y_pred}")
             if np.argmax(y_pred, axis=1) == 1 and y_pred[0][1] > THRESHOLD:
                 logger.info("Append malicious request to warning.")

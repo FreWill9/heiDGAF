@@ -5,7 +5,7 @@ from dataclasses import asdict
 
 import marshmallow_dataclass
 
-sys.path.append(os.getcwd())
+sys.path.append(os.getcwd())    # noqa: E402
 from src.monitoring.clickhouse_batch_sender import *
 from src.base.kafka_handler import SimpleKafkaConsumeHandler
 from src.base.data_classes.clickhouse_connectors import TABLE_NAME_TO_TYPE

@@ -6,7 +6,7 @@ import os
 import sys
 import uuid
 
-sys.path.append(os.getcwd())
+sys.path.append(os.getcwd())    # noqa: E402
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.kafka_handler import ExactlyOnceKafkaConsumeHandler
 from src.base.logline_handler import LoglineHandler
@@ -125,8 +125,14 @@ class LogCollector:
 
         if INPUT_FORMAT_ZEEK:
             subnet_id = self._get_subnet_id(ipaddress.ip_address(fields.get("orig_ip")))
+            monitoring_ip = fields.get("orig_ip")
+            status_code = fields.get("rcode_name")
+            record_type = fields.get("qtype_name")
         else:
             subnet_id = self._get_subnet_id(ipaddress.ip_address(fields.get("client_ip")))
+            monitoring_ip = fields.get("client_ip")
+            status_code = fields.get("status_code")
+            record_type = fields.get("record_type")
         logline_id = uuid.uuid4()
 
         self.dns_loglines.insert(
@@ -134,9 +140,9 @@ class LogCollector:
                 logline_id=logline_id,
                 subnet_id=subnet_id,
                 timestamp=datetime.datetime.fromisoformat(fields.get("timestamp")),
-                # status_code=fields.get("status_code"),
-                # client_ip=fields.get("client_ip"),
-                # record_type=fields.get("record_type"),
+                status_code=status_code,
+                client_ip=monitoring_ip,
+                record_type=record_type,
                 additional_fields=json.dumps(additional_fields),
             )
         )
@@ -164,6 +170,7 @@ class LogCollector:
             )
         )
 
+        logger.warning(f"Collector to batch_handler: (subnet_id={subnet_id}, message:{message}")
         self.batch_handler.add_message(subnet_id, json.dumps(message_fields))
         logger.debug(f"Sent: '{message}'")
 

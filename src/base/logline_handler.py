@@ -8,15 +8,22 @@ logger = get_logger()
 
 CONFIG = setup_config()
 LOGLINE_FIELDS = CONFIG["pipeline"]["log_collection"]["collector"]["logline_format"]
-ZEEK_LOGLINE_FIELDS = CONFIG["pipeline"]["log_collection"]["collector"]["connlog_format"]
-REQUIRED_FIELDS = []
-"""[
+CONNLOG_LOGLINE_FIELDS = CONFIG["pipeline"]["log_collection"]["collector"]["connlog_format"]
+DNSLOG_LOGLINE_FIELDS = CONFIG["pipeline"]["log_collection"]["collector"]["dnslog_format"]
+REQUIRED_FIELDS_ZEEK = [
+    "timestamp",
+    "rcode_name",
+    "orig_ip",
+    "qtype_name",
+    "query",
+]
+REQUIRED_FIELDS_DNS = [
     "timestamp",
     "status_code",
     "client_ip",
     "record_type",
-    "domain_name",
-]"""
+    "domain_name"
+]
 FORBIDDEN_FIELD_NAMES = [
     "logline_id",
     "batch_id",
@@ -232,6 +239,90 @@ class ListItem(FieldType):
         return True
 
 
+class ZeekCount(FieldType):
+    """
+    An :cls:`ZeekCount` object takes only a name. It is used for the zeek count type, and checks in the
+    :meth:`validate` method if the value is a correct integer or Zeek-None represented as -.
+    """
+
+    def __init__(self, name):
+        super().__init__(name)
+
+    def validate(self, value) -> bool:
+        """
+        Validates the input value.
+
+        Args:
+            value: The value to be validated
+
+        Returns:
+            True if the value is valid, False otherwise
+        """
+        if value == "-":
+            logger.debug(f"ZeekCount {value} validated")
+            return True
+        try:
+            int(value)
+            logger.debug(f"ZeekCount {value} validated")
+            return True
+        except ValueError:
+            logger.debug(f"ZeekCount {value} invalid")
+            return False
+
+
+class ZeekInterval(FieldType):
+    """
+    An :cls:`ZeekInterval` object takes only a name. It is used for the zeek Interval type, and checks in the
+    :meth:`validate` method if the value is a correct interval or Zeek-None represented as -.
+    """
+
+    def __init__(self, name):
+        super().__init__(name)
+
+    def validate(self, value) -> bool:
+        """
+        Validates the input value.
+
+        Args:
+            value: The value to be validated
+
+        Returns:
+            True if the value is valid, False otherwise
+        """
+        if value == "-":
+            logger.debug(f"ZeekInterval {value} validated")
+            return True
+        try:
+            float(value)
+            logger.debug(f"ZeekInterval {value} validated")
+            return True
+        except ValueError:
+            logger.debug(f"ZeekInterval {value} invalid")
+            return False
+
+
+class ZeekString(FieldType):
+    """
+    An :cls:`ZeekString` object takes only a name. It is used for the zeek sting type, and checks in the
+    :meth:`validate` method if the value is a correct string or Zeek-None represented as -.
+    """
+
+    def __init__(self, name):
+        super().__init__(name)
+
+    def validate(self, value) -> bool:
+        """
+        Validates the input value.
+
+        Args:
+            value: The value to be validated
+
+        Returns:
+            True if the value is valid, False otherwise
+        """
+        return True
+
+
 class LoglineHandler:
     """
     Stores the configuration format of loglines and can be used to validate a given logline, i.e. checks if the given
@@ -244,7 +335,7 @@ class LoglineHandler:
         self.number_of_fields = 0
 
         if INPUT_FORMAT_ZEEK:
-            self.logline_fields = ZEEK_LOGLINE_FIELDS
+            self.logline_fields = DNSLOG_LOGLINE_FIELDS
         else:
             self.logline_fields = LOGLINE_FIELDS
 
@@ -264,9 +355,14 @@ class LoglineHandler:
             self.instances_by_name[instance.name] = instance
             self.number_of_fields += 1
 
-        for required_field in REQUIRED_FIELDS:
-            if required_field not in self.instances_by_name:
-                raise ValueError("Not all needed fields are set in the configuration")
+        if INPUT_FORMAT_ZEEK:
+            for required_field in REQUIRED_FIELDS_ZEEK:
+                if required_field not in self.instances_by_name:
+                    raise ValueError("Not all needed fields are set in the configuration")
+        else:
+            for required_field in REQUIRED_FIELDS_DNS:
+                if required_field not in self.instances_by_name:
+                    raise ValueError("Not all needed fields are set in the configuration")
 
         if self.number_of_fields == 0:
             raise ValueError("No fields configured")
@@ -286,7 +382,7 @@ class LoglineHandler:
         parts = logline.split()
         number_of_entries = len(parts)
 
-        # check number of entries TODO: make < to == by validating all fields
+        # check number of entries
         if number_of_entries < self.number_of_fields:
             logger.warning(
                 f"Logline contains {number_of_entries} value(s), not {self.number_of_fields}."
@@ -427,6 +523,24 @@ class LoglineHandler:
         elif cls_name == "PortNumber":
             if len_of_field_list != 2:
                 raise ValueError("Invalid Port Number parameters")
+
+            instance = cls(name=name)
+
+        elif cls_name == "ZeekCount":
+            if len_of_field_list != 2:
+                raise ValueError("Invalid ZeekCount parameters")
+
+            instance = cls(name=name)
+
+        elif cls_name == "ZeekInterval":
+            if len_of_field_list != 2:
+                raise ValueError("Invalid ZeekInterval parameters")
+
+            instance = cls(name=name)
+
+        elif cls_name == "ZeekString":
+            if len_of_field_list != 2:
+                raise ValueError("Invalid ZeekString parameters")
 
             instance = cls(name=name)
 

@@ -5,7 +5,7 @@ import uuid
 
 import marshmallow_dataclass
 
-sys.path.append(os.getcwd())
+sys.path.append(os.getcwd())    # noqa: E402
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.data_classes.batch import Batch
 from src.base.logline_handler import LoglineHandler
