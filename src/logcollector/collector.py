@@ -24,13 +24,20 @@ IPV4_PREFIX_LENGTH = config["pipeline"]["log_collection"]["batch_handler"]["subn
 IPV6_PREFIX_LENGTH = config["pipeline"]["log_collection"]["batch_handler"]["subnet_id"][
     "ipv6_prefix_length"
 ]
-REQUIRED_FIELDS = []
-"""[
+REQUIRED_FIELDS_ZEEK_DNSLOG = [
+    "timestamp",
+    "rcode_name",
+    "orig_ip",
+    "qtype_name",
+    "query",
+]
+REQUIRED_FIELDS_DNS = [
     "timestamp",
     "status_code",
     "client_ip",
     "record_type",
-]"""
+    "domain_name"
+]
 BATCH_SIZE = config["pipeline"]["log_collection"]["batch_handler"]["batch_size"]
 CONSUME_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
     "logserver_to_collector"
@@ -120,19 +127,22 @@ class LogCollector:
             return
 
         additional_fields = fields.copy()
-        for field in REQUIRED_FIELDS:
-            additional_fields.pop(field)
 
         if INPUT_FORMAT_ZEEK:
+            for field in REQUIRED_FIELDS_ZEEK_DNSLOG:
+                additional_fields.pop(field)
             subnet_id = self._get_subnet_id(ipaddress.ip_address(fields.get("orig_ip")))
             monitoring_ip = fields.get("orig_ip")
             status_code = fields.get("rcode_name")
             record_type = fields.get("qtype_name")
         else:
+            for field in REQUIRED_FIELDS_DNS:
+                additional_fields.pop(field)
             subnet_id = self._get_subnet_id(ipaddress.ip_address(fields.get("client_ip")))
             monitoring_ip = fields.get("client_ip")
             status_code = fields.get("status_code")
             record_type = fields.get("record_type")
+
         logline_id = uuid.uuid4()
 
         self.dns_loglines.insert(

@@ -62,7 +62,7 @@ pipeline:
         - [ "rcode", ZeekCount ]
         - [ "rcode_name", ZeekString]
     batch_handler:
-      batch_size: 1000  # 10000
+      batch_size: 1000  # before 10000
       batch_timeout: 30.0
       subnet_id:
         ipv4_prefix_length: 24

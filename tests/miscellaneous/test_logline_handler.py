@@ -10,11 +10,12 @@ from src.base.logline_handler import (
     Timestamp,
 )
 
-MOCK_REQUIRED_FIELDS = ["timestamp", "status_code"]
+MOCK_REQUIRED_FIELDS_DNS = ["timestamp", "status_code"]
 
 
+@patch("src.base.logline_handler.INPUT_FORMAT_ZEEK", False)
 class TestInit(unittest.TestCase):
-    @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
+    @patch("src.base.logline_handler.REQUIRED_FIELDS_DNS", MOCK_REQUIRED_FIELDS_DNS)
     @patch(
         "src.base.logline_handler.LOGLINE_FIELDS",
         [
@@ -64,7 +65,7 @@ class TestInit(unittest.TestCase):
         self.assertEqual(expected_instances_by_position, sut.instances_by_position)
         self.assertEqual(4, sut.number_of_fields)
 
-    @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
+    @patch("src.base.logline_handler.REQUIRED_FIELDS_DNS", MOCK_REQUIRED_FIELDS_DNS)
     @patch(
         "src.base.logline_handler.LOGLINE_FIELDS",
         [
@@ -99,7 +100,7 @@ class TestInit(unittest.TestCase):
 
         self.assertEqual(str(context.exception), "Multiple fields with same name")
 
-    @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
+    @patch("src.base.logline_handler.REQUIRED_FIELDS_DNS", MOCK_REQUIRED_FIELDS_DNS)
     @patch(
         "src.base.logline_handler.LOGLINE_FIELDS",
         [
@@ -125,7 +126,7 @@ class TestInit(unittest.TestCase):
             str(context.exception), "Not all needed fields are set in the configuration"
         )
 
-    @patch("src.base.logline_handler.REQUIRED_FIELDS", ["field_1"])
+    @patch("src.base.logline_handler.REQUIRED_FIELDS_DNS", ["field_1"])
     @patch("src.base.logline_handler.LOGLINE_FIELDS", ["field_1", "field_2"])
     @patch("src.base.logline_handler.FORBIDDEN_FIELD_NAMES", ["field_2"])
     @patch("src.base.logline_handler.LoglineHandler._create_instance_from_list_entry")
@@ -146,7 +147,7 @@ class TestInit(unittest.TestCase):
             "['field_2']",
         )
 
-    @patch("src.base.logline_handler.REQUIRED_FIELDS", [])
+    @patch("src.base.logline_handler.REQUIRED_FIELDS_DNS", [])
     @patch("src.base.logline_handler.LOGLINE_FIELDS", [])
     @patch("src.base.logline_handler.LOGLINE_FIELDS", [])
     @patch("src.base.logline_handler.LoglineHandler._create_instance_from_list_entry")
@@ -161,8 +162,9 @@ class TestInit(unittest.TestCase):
         self.assertEqual(str(context.exception), "No fields configured")
 
 
+@patch("src.base.logline_handler.INPUT_FORMAT_ZEEK", False)
 class TestValidateLogline(unittest.TestCase):
-    @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
+    @patch("src.base.logline_handler.REQUIRED_FIELDS_DNS", MOCK_REQUIRED_FIELDS_DNS)
     @patch(
         "src.base.logline_handler.LOGLINE_FIELDS",
         [
@@ -180,7 +182,7 @@ class TestValidateLogline(unittest.TestCase):
             sut.validate_logline("2024-07-28T14:45:30.123Z NXDOMAIN 126.24.5.20")
         )
 
-    @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
+    @patch("src.base.logline_handler.REQUIRED_FIELDS_DNS", MOCK_REQUIRED_FIELDS_DNS)
     @patch(
         "src.base.logline_handler.LOGLINE_FIELDS",
         [
@@ -210,13 +212,18 @@ class TestValidateLogline(unittest.TestCase):
         )
 
     @patch("src.base.logline_handler.logger")
-    @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
+    @patch("src.base.logline_handler.REQUIRED_FIELDS_DNS", MOCK_REQUIRED_FIELDS_DNS)
     @patch(
         "src.base.logline_handler.LOGLINE_FIELDS",
         [
             ["timestamp", "RegEx", r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$"],
             ["status_code", "ListItem", ["NOERROR", "NXDOMAIN"], ["NXDOMAIN"]],
             ["client_ip", "IpAddress"],
+            ["dns_server_ip", "IpAddress"],
+            ["domain_name", "RegEx", '^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)+[A-Za-z]{2,63}$'],
+            ["record_type", "ListItem", ["A", "AAAA"]],
+            ["response_ip", "IpAddress"],
+            ["size", "RegEx", '^\\d+b$']
         ],
     )
     def test_validate_wrong_number_of_fields(self, mock_logger):
@@ -225,11 +232,11 @@ class TestValidateLogline(unittest.TestCase):
 
         # Act and Assert
         self.assertFalse(
-            sut.validate_logline("2024-07-28T14:45:30.123Z NXDOMAIN 126.24.5.20 test")
+            sut.validate_logline("2025-04-04T14:45:32.458Z NXDOMAIN 192.168.3.152 10.10.0.3 test.com")
         )
 
     @patch("src.base.logline_handler.logger")
-    @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
+    @patch("src.base.logline_handler.REQUIRED_FIELDS_DNS", MOCK_REQUIRED_FIELDS_DNS)
     @patch(
         "src.base.logline_handler.LOGLINE_FIELDS",
         [
@@ -246,7 +253,7 @@ class TestValidateLogline(unittest.TestCase):
         self.assertFalse(sut.validate_logline(""))
 
     @patch("src.base.logline_handler.logger")
-    @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
+    @patch("src.base.logline_handler.REQUIRED_FIELDS_DNS", MOCK_REQUIRED_FIELDS_DNS)
     @patch(
         "src.base.logline_handler.LOGLINE_FIELDS",
         [
@@ -265,7 +272,7 @@ class TestValidateLogline(unittest.TestCase):
         )
 
     @patch("src.base.logline_handler.logger")
-    @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
+    @patch("src.base.logline_handler.REQUIRED_FIELDS_DNS", MOCK_REQUIRED_FIELDS_DNS)
     @patch(
         "src.base.logline_handler.LOGLINE_FIELDS",
         [
@@ -284,8 +291,9 @@ class TestValidateLogline(unittest.TestCase):
         )
 
 
+@patch("src.base.logline_handler.INPUT_FORMAT_ZEEK", False)
 class TestValidateLoglineAndGetFieldsAsJson(unittest.TestCase):
-    @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
+    @patch("src.base.logline_handler.REQUIRED_FIELDS_DNS", MOCK_REQUIRED_FIELDS_DNS)
     @patch(
         "src.base.logline_handler.LOGLINE_FIELDS",
         [
@@ -327,7 +335,7 @@ class TestValidateLoglineAndGetFieldsAsJson(unittest.TestCase):
         )
 
     @patch("src.base.logline_handler.logger")
-    @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
+    @patch("src.base.logline_handler.REQUIRED_FIELDS_DNS", MOCK_REQUIRED_FIELDS_DNS)
     @patch(
         "src.base.logline_handler.LOGLINE_FIELDS",
         [
@@ -352,7 +360,8 @@ class TestValidateLoglineAndGetFieldsAsJson(unittest.TestCase):
 
 
 class TestCheckRelevance(unittest.TestCase):
-    @patch("src.base.logline_handler.REQUIRED_FIELDS", MOCK_REQUIRED_FIELDS)
+    @patch("src.base.logline_handler.REQUIRED_FIELDS_DNS", MOCK_REQUIRED_FIELDS_DNS)
+    @patch("src.base.logline_handler.INPUT_FORMAT_ZEEK", False)
     @patch(
         "src.base.logline_handler.LOGLINE_FIELDS",
         [

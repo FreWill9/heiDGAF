@@ -1,6 +1,7 @@
 import ipaddress
 import re
 import unittest
+from unittest.mock import patch
 
 from src.base.logline_handler import FieldType, RegEx, IpAddress, ListItem, Timestamp
 
@@ -23,6 +24,7 @@ class TestFieldType(unittest.TestCase):
             sut.validate(value="test")
 
 
+@patch("src.base.logline_handler.INPUT_FORMAT_ZEEK", False)
 class TestTimestamp(unittest.TestCase):
     def test_init(self):
         # Arrange
