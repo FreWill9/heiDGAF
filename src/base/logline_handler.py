@@ -303,12 +303,15 @@ class ZeekInterval(FieldType):
 
 class ZeekString(FieldType):
     """
-    An :cls:`ZeekString` object takes only a name. It is used for the zeek sting type, and checks in the
-    :meth:`validate` method if the value is a correct string or Zeek-None represented as -.
+    An :cls:`ZeekString` object takes a name and one list. The 'irrelevant_list' contains stings that are not
+    relevant for further inspection and are therefore sorted out in the prefilter stage.
+    The :meth:'validate' method always returns True since the input value is always a String.
     """
 
-    def __init__(self, name):
+    def __init__(self, name: str, irrelevant_list: list):
         super().__init__(name)
+
+        self.irrelevant_list = irrelevant_list
 
     def validate(self, value) -> bool:
         """
@@ -320,6 +323,21 @@ class ZeekString(FieldType):
         Returns:
             True if the value is valid, False otherwise
         """
+        return True
+
+    def check_relevance(self, value) -> bool:
+        """
+        Checks if the given value is a relevant value.
+
+        Args:
+            value: Value to be checked for relevance
+
+        Returns:
+            True if the value is relevant, else False
+        """
+        if self.irrelevant_list:
+            return False if value in self.irrelevant_list else True
+
         return True
 
 
@@ -463,7 +481,7 @@ class LoglineHandler:
 
         for i in self.instances_by_position:
             current_instance = self.instances_by_position[i]
-            if isinstance(current_instance, ListItem):
+            if isinstance(current_instance, ListItem) or isinstance(current_instance, ZeekString):
                 if not current_instance.check_relevance(
                         logline_dict[current_instance.name]
                 ):
@@ -539,10 +557,18 @@ class LoglineHandler:
             instance = cls(name=name)
 
         elif cls_name == "ZeekString":
-            if len_of_field_list != 2:
-                raise ValueError("Invalid ZeekString parameters")
+            if len_of_field_list == 3:
+                irrelevant_list = field_list[2]
+                if not isinstance(irrelevant_list, list):
+                    raise ValueError("Invalid ZeekString.irrelevant_list parameters")
+            elif len_of_field_list == 2:
+                irrelevant_list = None
+            else:
+                raise ValueError("Invalid ZeekString.irrelevant_list parameters")
 
-            instance = cls(name=name)
+            instance = cls(
+                name=name, irrelevant_list=irrelevant_list
+            )
 
         else:
             raise ValueError(f"Unsupported class '{cls_name}'")

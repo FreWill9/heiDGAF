@@ -18,7 +18,8 @@ logging:
 pipeline:
   log_storage:
     logserver:
-      input_files: ["../../file.txt",
+      input_files: [# "../../file.txt",
+                    # "../../DNS_collector_input_dir/output.txt"
                     # "../../zeek_input_dir/current/conn.log",
                     # "../../zeek_input_dir/batch/conn.log",
                     # "../../zeek_input_dir/current/dns.log",
@@ -35,7 +36,7 @@ pipeline:
         - [ "domain_name", RegEx, '^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$' ]
         - [ "record_type", ListItem, [ "A", "AAAA" ] ]
         - [ "response_ip", IpAddress ]
-        - [ "size", RegEx, '^\d+b$' ]
+        - [ "size", RegEx, '^\d+$' ]
       connlog_format:
         - [ "timestamp", Timestamp, "%Y-%m-%dT%H:%M:%S.%fZ"]
         - [ "uid", RegEx, '^[0-9a-zA-Z]+$' ]
@@ -60,7 +61,7 @@ pipeline:
         - [ "qtype", ZeekCount ]
         - [ "qtype_name", ZeekString ]
         - [ "rcode", ZeekCount ]
-        - [ "rcode_name", ZeekString]
+        - [ "rcode_name", ZeekString, [ "NOERROR" ] ]
     batch_handler:
       batch_size: 1000  # before 10000
       batch_timeout: 30.0
