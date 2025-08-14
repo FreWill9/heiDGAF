@@ -385,10 +385,10 @@ class BufferedBatchSender:
             )
         )
 
-        logger.debug(f"Batch: {self.batch.batch}")
         number_of_messages_for_key = self.batch.get_message_count_for_batch_key(key)
 
         if number_of_messages_for_key >= BATCH_SIZE:
+            logger.info(f"Full batch: trying to send {number_of_messages_for_key} messages for subnet_id: {key}")
             self._send_batch_for_key(key)
             logger.info(
                 f"Full batch: Successfully sent batch messages for subnet_id {key}.\n"
@@ -410,6 +410,8 @@ class BufferedBatchSender:
 
         for key in self.batch.get_stored_keys():
             number_of_keys += 1
+            logger.info(f"Send all batches: trying to send {self.batch.get_message_count_for_batch_key(key)} messages "
+                        f"for subnet_id: {key}")
             self._send_batch_for_key(key)
 
         if reset_timer:

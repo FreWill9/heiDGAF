@@ -3,13 +3,15 @@ import os
 import sys
 import uuid
 from datetime import datetime
+import time
+from contextlib import contextmanager
 from enum import Enum, unique
 
 import marshmallow_dataclass
 import numpy as np
 from streamad.util import StreamGenerator, CustomDS
 
-sys.path.append(os.getcwd())    # noqa: E402
+sys.path.append(os.getcwd())  # noqa: E402
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.data_classes.batch import Batch
 from src.base.utils import setup_config
@@ -69,6 +71,16 @@ VALID_ENSEMBLE_MODELS = ["WeightEnsemble", "VoteEnsemble"]
 
 STATIC_ZEROS_UNIVARIATE = np.zeros((100, 1))
 STATIC_ZEROS_MULTIVARIATE = np.zeros((100, 2))
+
+
+@contextmanager
+def timed(label: str):      # only for debugging
+    t0 = time.perf_counter()
+    try:
+        yield
+    finally:
+        dt_ms = (time.perf_counter() - t0) * 1000
+        logger.info("%s took %.0f ms", label, dt_ms)
 
 
 @unique
@@ -276,14 +288,26 @@ class Inspector:
         timestamps = timestamps[sorted_indices]
 
         logger.debug("Set min_date and max_date")
-        # min_date = np.datetime64(begin_timestamp)
-        # max_date = np.datetime64(end_timestamp)
-        try:
-            min_date = np.min(timestamps)
-            max_date = np.max(timestamps)
-        except ValueError:
-            min_date = np.datetime64("2025-01-01T00:00:00.000000")      # temporary fix, TODO: timestamp problem
-            max_date = np.datetime64("2025-01-01T00:00:00.000000")
+        min_date = np.datetime64(begin_timestamp)
+        max_date = np.datetime64(end_timestamp)
+        difference_in_ms = (max_date - min_date).astype('timedelta64[ms]')
+
+        # increase TIME_RANGE, TIME_TYPE when interval gets too big
+        global TIME_RANGE
+        global TIME_TYPE
+
+        if difference_in_ms > np.timedelta64(1, 'h'):
+            TIME_RANGE = 1
+            TIME_TYPE = "s"
+        if difference_in_ms > np.timedelta64(1, 'D'):
+            TIME_RANGE = 1
+            TIME_TYPE = "m"
+        if difference_in_ms > np.timedelta64(30, 'D'):
+            TIME_RANGE = 15
+            TIME_TYPE = "m"
+        if difference_in_ms > np.timedelta64(365, 'D'):
+            TIME_RANGE = 1
+            TIME_TYPE = "D"
 
         logger.debug(
             "Generate the time range from min_date to max_date with given interval"
@@ -291,9 +315,9 @@ class Inspector:
         # Adding np.timedelta adds end time to time_range
         time_range = np.arange(
             min_date,
-            max_date + np.timedelta64(2*TIME_RANGE, TIME_TYPE),         # temporary fix, TODO: timestamp problem
+            max_date + np.timedelta64(TIME_RANGE, TIME_TYPE),
             np.timedelta64(TIME_RANGE, TIME_TYPE),
-        )
+            )
 
         logger.debug(
             "Initialize an array to hold counts for each timestamp in the range"
@@ -318,6 +342,7 @@ class Inspector:
             logger.warning("Empty messages to inspect.")
 
         logger.debug("Reshape into the required shape (n, 1)")
+        logger.debug("count_errors -> N=%d, min=%s, max=%s", counts.size, counts.min(), counts.max())
         return counts.reshape(-1, 1)
 
     def inspect(self):
@@ -414,6 +439,7 @@ class Inspector:
         """
 
         logger.debug("Inspecting data...")
+        logger.debug(f"begin_timestamp: {self.begin_timestamp}, end_timestamp: {self.end_timestamp}")
 
         self.X = self._count_errors(
             self.messages, self.begin_timestamp, self.end_timestamp
@@ -424,14 +450,17 @@ class Inspector:
 
         ds = CustomDS(self.X, self.X)
         stream = StreamGenerator(ds.data)
+        logger.debug(f"Successfully generated stream")
 
-        for x in stream.iter_item():
-            score = self.models[0].fit_score(x)
-            # noqa
-            if score is not None:
-                self.anomalies.append(score)
-            else:
-                self.anomalies.append(0)
+        with timed("loop over stream: "):
+            for x in stream.iter_item():
+                score = self.models[0].fit_score(x)
+                # noqa
+                if score is not None:
+                    self.anomalies.append(score)
+                else:
+                    self.anomalies.append(0)
+            logger.debug(f"Successfully finished loop")
 
     def _get_models(self, models):
         if hasattr(self, "models") and self.models is not None and self.models != []:
@@ -602,12 +631,15 @@ def main(one_iteration: bool = False):
 
         try:
             logger.debug("Before getting and filling data")
-            inspector.get_and_fill_data()
+            with timed("get and fill data: "):
+                inspector.get_and_fill_data()
             logger.debug("After getting and filling data")
             logger.debug("Start anomaly detection")
-            inspector.inspect()
+            with timed("inspect: "):
+                inspector.inspect()
             logger.debug("Send data to detector")
-            inspector.send_data()
+            with timed("send data: "):
+                inspector.send_data()
         except KafkaMessageFetchException as e:  # pragma: no cover
             logger.debug(e)
         except IOError as e:

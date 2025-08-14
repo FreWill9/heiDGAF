@@ -1,13 +1,16 @@
 import re
+import os
 
 import polars as pl
 
+
 if __name__ == "__main__":
+    print(f"CW: {os.getcwd()}")
     files = [
-        "CICBellDNS2021_CSV_benign.csv",
-        "CICBellDNS2021_CSV_malware.csv",
-        "CICBellDNS2021_CSV_phishing.csv",
-        "CICBellDNS2021_CSV_spam.csv",
+        "CSVs/CICBellDNS2021_CSV_benign.csv",
+        "CSVs/CICBellDNS2021_CSV_malware.csv",
+        "CSVs/CICBellDNS2021_CSV_phishing.csv",
+        "CSVs/CICBellDNS2021_CSV_spam.csv",
     ]
 
     domains = {}

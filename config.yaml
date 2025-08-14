@@ -1,29 +1,34 @@
 logging:
   base:
-    debug: true
+    debug: false
   modules:
     log_storage.logserver:
-      debug: true
+      debug: false
     log_collection.collector:
-      debug: true
+      debug: false
     log_collection.batch_handler:
-      debug: true
+      debug: false
     log_filtering.prefilter:
-      debug: true
+      debug: false
     data_inspection.inspector:
-      debug: true
+      debug: false
     data_analysis.detector:
-      debug: true
+      debug: false
 
 pipeline:
   log_storage:
     logserver:
-      input_files: [# "../../file.txt",
-                    # "../../DNS_collector_input_dir/output.txt"
-                    # "../../zeek_input_dir/current/conn.log",
-                    # "../../zeek_input_dir/batch/conn.log",
-                    # "../../zeek_input_dir/current/dns.log",
-                    "../../zeek_input_dir/batch/dns.log"
+      input_files: [
+        # "../../file.txt",
+        # "../../DNS_collector_input_dir/output.txt"
+        # "../../zeek_input_dir/current/conn.log",
+        # "../../zeek_input_dir/batch/conn.log",
+        # "../../zeek_input_dir/current/dns.log",
+        # "../../zeek_input_dir/batch/dns.log",
+        "../../zeek_input_dir/shortened_dns.log",
+        # "../../zeek_input_dir/shortened_to_bug_dns.log"
+         # In container:
+        # "zeek_input_dir/batch/dns.log"
       ]
 
   log_collection:
@@ -55,7 +60,7 @@ pipeline:
         - [ "proto", ListItem, [ "tcp", "udp", "icmp", "unknown_transport" ] ]
         - [ "trans_id", ZeekCount ]
         - [ "rtt", ZeekInterval ]
-        - [ "query", RegEx, '^(?=.{1,253}$)((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$']
+        - [ "query", RegEx, '^(?=.{1,253}$)(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+(?:[A-Za-z0-9][A-Za-z0-9-]{0,61}[A-Za-z0-9])$']
         - [ "qclass", ZeekCount ]
         - [ "qclass_name", ZeekString ]
         - [ "qtype", ZeekCount ]
@@ -100,16 +105,20 @@ pipeline:
       batch_timeout: 2.0
 
 environment:
-  zeek: true  # choose if input format is given in zeek logs or dns logs, true -> zeek, false -> dns
+  zeek: true  # choose if input format is given in zeek logs or dnscollector logs, true -> zeek, false -> dns
   kafka_brokers:
-    #- hostname: kafka1
-    #  port: 8097
-    #- hostname: kafka2
-    #  port: 8098
-    #- hostname: kafka3
-    #  port: 8099
+    # - hostname: kafka1
+    #   port: 8097
+    # - hostname: kafka2
+    #   port: 8098
+    # - hostname: kafka3
+    #   port: 8099
     - hostname: localhost
-      port:  2323
+      port: 9092
+    - hostname: localhost
+      port: 9093
+    - hostname: localhost
+      port: 9094
   kafka_topics:
     pipeline:
       logserver_in: "pipeline-logserver_in"

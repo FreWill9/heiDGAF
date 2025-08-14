@@ -180,7 +180,6 @@ class LogCollector:
             )
         )
 
-        logger.warning(f"Collector to batch_handler: (subnet_id={subnet_id}, message:{message}")
         self.batch_handler.add_message(subnet_id, json.dumps(message_fields))
         logger.debug(f"Sent: '{message}'")
 

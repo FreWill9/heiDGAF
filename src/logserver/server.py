@@ -146,7 +146,7 @@ class LogServer:
             return f
 
         if last_inode is not None:
-            file = await open_and_seek(seek_end=True)
+            file = await open_and_seek(seek_end=False)
 
         try:
             while True:
@@ -202,6 +202,7 @@ def main() -> None:
     """
     Creates the :class:`LogServer` instance and starts it.
     """
+    # Run Program
     server_instance = LogServer()
     asyncio.run(server_instance.start())
 

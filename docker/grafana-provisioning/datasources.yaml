@@ -14,3 +14,11 @@ datasources:
       defaultDatabase: default
       tlsSkipVerify: true
       httpMode: GET
+
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: false
+    version: 1
+    editable: true

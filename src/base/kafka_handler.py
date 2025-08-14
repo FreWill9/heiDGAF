@@ -99,6 +99,7 @@ class SimpleKafkaProduceHandler(KafkaProduceHandler):
             "enable.idempotence": False,
             "acks": "1",
             'broker.address.family': 'v4',      # fixes weird bug on local machine
+            'message.max.bytes': 2097152,       # fixes local bug
         }
 
         super().__init__(conf)
@@ -139,6 +140,7 @@ class ExactlyOnceKafkaProduceHandler(KafkaProduceHandler):
             # "transactional.id": HOSTNAME,
             "transactional.id": transactional_id,
             "enable.idempotence": True,
+            'message.max.bytes': 2097152,       # fixes local bug
         }
 
         super().__init__(conf)
@@ -234,6 +236,8 @@ class KafkaConsumeHandler(KafkaHandler):
             "enable.auto.commit": False,
             "auto.offset.reset": "earliest",
             "enable.partition.eof": True,
+            "max.partition.fetch.bytes": 2097152,      # fix local bug
+            "fetch.max.bytes": 3145728                 # fix local bug
         }
         self.consumer = Consumer(conf)
 

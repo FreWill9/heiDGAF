@@ -1,0 +1,153 @@
+services:
+  controller:
+    image: confluentinc/cp-kafka:7.6.1
+    hostname: controller
+    container_name: controller
+    cpus: 0.25
+    environment:
+      KAFKA_PROCESS_ROLES: controller
+      KAFKA_NODE_ID: 100
+      CLUSTER_ID: LhYp1F2cQ3e7r9t1u2v3w4  # any 22-char Base64-ish string
+      KAFKA_LISTENERS: CONTROLLER://0.0.0.0:29093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 100@controller:29093
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      # Controller is lightweight — keep heap small
+      KAFKA_HEAP_OPTS: "-Xms256m -Xmx512m"
+    volumes:
+      - controller-data:/var/lib/kafka/data
+    ports:
+      # Exposing controller port is optional; not needed by clients
+      - "29093:29093"
+    deploy:
+      resources:
+        limits:
+          memory: 1G  # hard cap for the container
+          cpus: 0.25
+
+  kafka-1:
+    image: confluentinc/cp-kafka:7.6.1
+    hostname: kafka-1
+    container_name: kafka-1
+    cpus: 1.9
+    environment:
+      KAFKA_PROCESS_ROLES: broker
+      KAFKA_NODE_ID: 1
+      CLUSTER_ID: LhYp1F2cQ3e7r9t1u2v3w4
+      # Two listeners: internal (BROKER) + external (EXTERNAL)
+      KAFKA_LISTENERS: BROKER://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: BROKER://kafka-1:29092,EXTERNAL://localhost:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: BROKER:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: BROKER
+      # Point to controller quorum
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 100@controller:29093
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      # Fix sizes
+      KAFKA_MESSAGE_MAX_BYTES: "2097152"           # broker will accept records/batches up to 20 MB
+      KAFKA_REPLICA_FETCH_MAX_BYTES: "2097152"     # followers can replicate messages that big
+      KAFKA_FETCH_MAX_BYTES: "2097152"             # (optional) for broker->consumer fetch path
+      # Fixed heap:
+      KAFKA_HEAP_OPTS: "-Xms2G -Xmx2G"
+      # Leader balance
+      KAFKA_AUTO_LEADER_REBALANCE_ENABLE: "true"
+      KAFKA_LEADER_IMBALANCE_CHECK_INTERVAL_SECONDS: "15"
+      KAFKA_LEADER_IMBALANCE_PER_BROKER_PERCENTAGE: "5"
+    ports:
+      - "9092:9092"
+    depends_on:
+      - controller
+    tmpfs:
+      - /var/lib/kafka/data:size=2g,uid=1000,gid=1000
+    deploy:
+      resources:
+        limits:
+          memory: 4G   # container cap (leaves headroom beyond heap)
+          cpus: 1.9
+        reservations:
+          memory: 2G
+
+  kafka-2:
+    image: confluentinc/cp-kafka:7.6.1
+    hostname: kafka-2
+    container_name: kafka-2
+    cpus: 1.9
+    environment:
+      KAFKA_PROCESS_ROLES: broker
+      KAFKA_NODE_ID: 2
+      CLUSTER_ID: LhYp1F2cQ3e7r9t1u2v3w4
+      KAFKA_LISTENERS: BROKER://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: BROKER://kafka-2:29092,EXTERNAL://localhost:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: BROKER:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: BROKER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 100@controller:29093
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      # Fix sizes
+      KAFKA_MESSAGE_MAX_BYTES: "2097152"           # broker will accept records/batches up to 20 MB
+      KAFKA_REPLICA_FETCH_MAX_BYTES: "2097152"     # followers can replicate messages that big
+      KAFKA_FETCH_MAX_BYTES: "2097152"             # (optional) for broker->consumer fetch path
+      KAFKA_HEAP_OPTS: "-Xms2G -Xmx2G"
+      # Leader balance
+      KAFKA_AUTO_LEADER_REBALANCE_ENABLE: "true"
+      KAFKA_LEADER_IMBALANCE_CHECK_INTERVAL_SECONDS: "15"
+      KAFKA_LEADER_IMBALANCE_PER_BROKER_PERCENTAGE: "5"
+    ports:
+      - "9093:9092"   # host 9093 -> container 9092
+    depends_on:
+      - controller
+    tmpfs:
+      - /var/lib/kafka/data:size=2g,uid=1000,gid=1000
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: 1.9
+        reservations:
+          memory: 2G
+
+  kafka-3:
+    image: confluentinc/cp-kafka:7.6.1
+    hostname: kafka-3
+    container_name: kafka-3
+    cpus: 1.9
+    environment:
+      KAFKA_PROCESS_ROLES: broker
+      KAFKA_NODE_ID: 3
+      CLUSTER_ID: LhYp1F2cQ3e7r9t1u2v3w4
+      KAFKA_LISTENERS: BROKER://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: BROKER://kafka-3:29092,EXTERNAL://localhost:9094
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: BROKER:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: BROKER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 100@controller:29093
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      # Fix sizes
+      KAFKA_MESSAGE_MAX_BYTES: "2097152"           # broker will accept records/batches up to 20 MB
+      KAFKA_REPLICA_FETCH_MAX_BYTES: "2097152"     # followers can replicate messages that big
+      KAFKA_FETCH_MAX_BYTES: "2097152"             # (optional) for broker->consumer fetch path
+      KAFKA_HEAP_OPTS: "-Xms2G -Xmx2G"
+      # Leader balance
+      KAFKA_AUTO_LEADER_REBALANCE_ENABLE: "true"
+      KAFKA_LEADER_IMBALANCE_CHECK_INTERVAL_SECONDS: "15"
+      KAFKA_LEADER_IMBALANCE_PER_BROKER_PERCENTAGE: "5"
+    ports:
+      - "9094:9092"   # host 9094 -> container 9092
+    depends_on:
+      - controller
+    tmpfs:
+      - /var/lib/kafka/data:size=2g,uid=1000,gid=1000
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: 1.9
+        reservations:
+          memory: 2G
+
+volumes:
+  controller-data:
+  kafka1-data:
+  kafka2-data:
+  kafka3-data:
