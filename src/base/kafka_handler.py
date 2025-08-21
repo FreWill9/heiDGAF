@@ -100,6 +100,7 @@ class SimpleKafkaProduceHandler(KafkaProduceHandler):
             "acks": "1",
             'broker.address.family': 'v4',      # fixes weird bug on local machine
             'message.max.bytes': 2097152,       # fixes local bug
+            'socket.keepalive.enable': True,    # fixes other bug
         }
 
         super().__init__(conf)
@@ -141,6 +142,7 @@ class ExactlyOnceKafkaProduceHandler(KafkaProduceHandler):
             "transactional.id": transactional_id,
             "enable.idempotence": True,
             'message.max.bytes': 2097152,       # fixes local bug
+            'socket.keepalive.enable': True,    # fixes other bug
         }
 
         super().__init__(conf)

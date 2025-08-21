@@ -59,7 +59,7 @@ services:
     depends_on:
       - controller
     tmpfs:
-      - /var/lib/kafka/data:size=2g,uid=1000,gid=1000
+      - /var/lib/kafka/data:size=4g,uid=1000,gid=1000
     deploy:
       resources:
         limits:
@@ -98,7 +98,7 @@ services:
     depends_on:
       - controller
     tmpfs:
-      - /var/lib/kafka/data:size=2g,uid=1000,gid=1000
+      - /var/lib/kafka/data:size=4g,uid=1000,gid=1000
     deploy:
       resources:
         limits:
@@ -137,7 +137,7 @@ services:
     depends_on:
       - controller
     tmpfs:
-      - /var/lib/kafka/data:size=2g,uid=1000,gid=1000
+      - /var/lib/kafka/data:size=4g,uid=1000,gid=1000
     deploy:
       resources:
         limits:
