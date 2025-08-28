@@ -44,6 +44,8 @@ class TestInit(unittest.TestCase):
             "enable.auto.commit": False,
             "auto.offset.reset": "earliest",
             "enable.partition.eof": True,
+            'max.partition.fetch.bytes': 2097152,
+            'fetch.max.bytes': 3145728
         }
 
         # Act

@@ -241,12 +241,19 @@ class ListItem(FieldType):
 
 class ZeekCount(FieldType):
     """
-    An :cls:`ZeekCount` object takes only a name. It is used for the zeek count type, and checks in the
-    :meth:`validate` method if the value is a correct integer or Zeek-None represented as -.
+    A :cls:`ZeekCount` object takes a name and on optional bit. It is used for the zeek count type, and checks in the
+    :meth:`validate` method if the value is a correct integer or, in case optional is true, a Zeek-None
+    represented as -.
     """
 
-    def __init__(self, name):
+    def __init__(self, name, optional: str = "False"):
         super().__init__(name)
+        if optional == "True":
+            self.optional = True
+        elif optional == "False":
+            self.optional = False
+        else:
+            raise ValueError(f"Optional type {optional} must be either 'True' or 'False'")
 
     def validate(self, value) -> bool:
         """
@@ -258,7 +265,7 @@ class ZeekCount(FieldType):
         Returns:
             True if the value is valid, False otherwise
         """
-        if value == "-":
+        if value == "-" and self.optional:
             logger.debug(f"ZeekCount {value} validated")
             return True
         try:
@@ -272,12 +279,19 @@ class ZeekCount(FieldType):
 
 class ZeekInterval(FieldType):
     """
-    An :cls:`ZeekInterval` object takes only a name. It is used for the zeek Interval type, and checks in the
-    :meth:`validate` method if the value is a correct interval or Zeek-None represented as -.
+    A :cls:`ZeekInterval` object takes a name and an optional bit. It is used for the zeek Interval type, and checks
+    in the :meth:`validate` method if the value is a correct interval or, in case optional is true, a Zeek-None
+    represented as -.
     """
 
-    def __init__(self, name):
+    def __init__(self, name, optional: bool = False):
         super().__init__(name)
+        if optional == "True":
+            self.optional = True
+        elif optional == "False":
+            self.optional = False
+        else:
+            raise ValueError(f"Optional type {optional} must be either 'True' or 'False'")
 
     def validate(self, value) -> bool:
         """
@@ -289,7 +303,7 @@ class ZeekInterval(FieldType):
         Returns:
             True if the value is valid, False otherwise
         """
-        if value == "-":
+        if value == "-" and self.optional:
             logger.debug(f"ZeekInterval {value} validated")
             return True
         try:
@@ -303,8 +317,8 @@ class ZeekInterval(FieldType):
 
 class ZeekString(FieldType):
     """
-    An :cls:`ZeekString` object takes a name and one list. The 'irrelevant_list' contains stings that are not
-    relevant for further inspection and are therefore sorted out in the prefilter stage.
+    A :cls:`ZeekString` object takes a name and one list. The 'irrelevant_list' contains stings that are not relevant
+    for further inspection and are therefore sorted out in the prefilter stage.
     The :meth:'validate' method always returns True since the input value is always a String.
     """
 

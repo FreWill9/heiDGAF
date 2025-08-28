@@ -34,6 +34,8 @@ class TestInit(unittest.TestCase):
             "bootstrap.servers": "127.0.0.1:9999,127.0.0.2:9998,127.0.0.3:9997",
             "transactional.id": ANY,     # changed from "test_transactional_id" since transactional.id is now random
             "enable.idempotence": True,
+            'message.max.bytes': 2097152,
+            'socket.keepalive.enable': True
         }
 
         sut = ExactlyOnceKafkaProduceHandler()
@@ -71,6 +73,8 @@ class TestInit(unittest.TestCase):
             "bootstrap.servers": "127.0.0.1:9999,127.0.0.2:9998,127.0.0.3:9997",
             "transactional.id": ANY,     # changed from "default_tid" since transactional.id is now random
             "enable.idempotence": True,
+            'message.max.bytes': 2097152,
+            'socket.keepalive.enable': True
         }
 
         with patch.object(

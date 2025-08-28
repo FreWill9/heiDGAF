@@ -290,7 +290,8 @@ class Inspector:
         logger.debug("Set min_date and max_date")
         min_date = np.datetime64(begin_timestamp)
         max_date = np.datetime64(end_timestamp)
-        difference_in_ms = (max_date - min_date).astype('timedelta64[ms]')
+        difference_in_ms = ((max_date - min_date).
+                            astype('timedelta64[ms]'))
 
         # increase TIME_RANGE, TIME_TYPE when interval gets too big
         global TIME_RANGE

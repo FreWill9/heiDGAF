@@ -7,6 +7,10 @@ from unittest.mock import MagicMock, patch, AsyncMock, Mock
 
 from src.logcollector.collector import LogCollector, main
 
+from src.base.log_config import get_logger
+module_name = "test_log_collection.collector"
+logger = get_logger(module_name)
+
 
 class TestInit(unittest.TestCase):
     @patch("src.logcollector.collector.CONSUME_TOPIC", "test_topic")
@@ -172,9 +176,10 @@ class TestSend(unittest.TestCase):
         self.sut.logline_handler = mock_logline_handler.return_value
         self.sut.logline_handler.validate_logline_and_get_fields_as_json.return_value = {
             "timestamp": str(timestamp),
-            # "status_code": "test_status",
+            "status_code": "test_status",
             "client_ip": "192.168.3.141",
-            # "record_type": "test_record_type",
+            "record_type": "test_record_type",
+            "domain_name": "example.com"
         }
 
         # Act
@@ -188,16 +193,17 @@ class TestSend(unittest.TestCase):
             self.sut.send(timestamp_in=timestamp, message=message)
 
         # Assert
-        """self.sut.batch_handler.add_message.assert_called_once_with(
+        self.sut.batch_handler.add_message.assert_called_once_with(
             "192.168.3.0_24",
             '{"timestamp": "2026-02-14 16:38:06.184006", "status_code": "test_status", "client_ip": "192.168.3.141", '
-            '"record_type": "test_record_type", "logline_id": "da3aec7f-b355-4a2c-a2f4-2066d49431a5"}',
-        )"""
-        self.sut.batch_handler.add_message.assert_called_once_with(
+            '"record_type": "test_record_type", "domain_name": "example.com", '
+            '"logline_id": "da3aec7f-b355-4a2c-a2f4-2066d49431a5"}',
+        )
+        """self.sut.batch_handler.add_message.assert_called_once_with(
             "192.168.3.0_24",
             '{"timestamp": "2026-02-14 16:38:06.184006", "client_ip": "192.168.3.141", "logline_id": '
             '"da3aec7f-b355-4a2c-a2f4-2066d49431a5"}',
-        )
+        )"""
 
 
 class TestGetSubnetId(unittest.TestCase):

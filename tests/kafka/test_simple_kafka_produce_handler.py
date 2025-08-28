@@ -29,7 +29,9 @@ class TestInit(unittest.TestCase):
             "bootstrap.servers": "127.0.0.1:9999,127.0.0.2:9998,127.0.0.3:9997",
             "enable.idempotence": False,
             "acks": "1",
-            'broker.address.family': 'v4'
+            'broker.address.family': 'v4',
+            'message.max.bytes': 2097152,
+            'socket.keepalive.enable': True
         }
 
         # Act

@@ -304,7 +304,6 @@ class Detector:
         logger.info("Start detecting malicious requests.")
         for message in self.messages:
             # TODO predict all messages
-            logger.warning(message)
             if INPUT_FORMAT_ZEEK:
                 y_pred = self.model.predict_proba(
                     self._get_features(message["query"])
