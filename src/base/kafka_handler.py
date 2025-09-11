@@ -95,6 +95,7 @@ class SimpleKafkaProduceHandler(KafkaProduceHandler):
         )
 
         conf = {
+            # config for running brokers locally
             "bootstrap.servers": self.brokers,
             "enable.idempotence": False,
             "acks": "1",
@@ -137,6 +138,7 @@ class ExactlyOnceKafkaProduceHandler(KafkaProduceHandler):
         )
 
         conf = {
+            # config for running brokers locally
             "bootstrap.servers": self.brokers,
             # "transactional.id": HOSTNAME,
             "transactional.id": transactional_id,
@@ -233,13 +235,36 @@ class KafkaConsumeHandler(KafkaHandler):
 
         # create consumer
         conf = {
+            # config for running brokers locally
             "bootstrap.servers": self.brokers,
             "group.id": CONSUMER_GROUP_ID,
-            "enable.auto.commit": False,
             "auto.offset.reset": "earliest",
-            "enable.partition.eof": True,
+            "enable.partition.eof": False,
+
+            "enable.auto.commit": True,
+            "enable.auto.offset.store": False,
+            "session.timeout.ms": 90000,
+            "heartbeat.interval.ms": 3000,
+            "max.poll.interval.ms": 600000,
+
             "max.partition.fetch.bytes": 2097152,      # fix local bug
-            "fetch.max.bytes": 3145728                 # fix local bug
+            "fetch.max.bytes": 3145728,                 # fix local bug
+            "auto.commit.interval.ms": 30000,
+
+            # config for running brokers in confluent cloud cluster
+            # "bootstrap.servers": self.brokers,
+            # key and secret pair for confluent cloud cluster
+            # 'sasl.username': '',
+            # 'sasl.password': '',
+            # Fixed properties
+            # 'security.protocol': 'SASL_SSL',
+            # 'sasl.mechanisms': 'PLAIN',
+
+            # 'group.id': CONSUMER_GROUP_ID,
+            # "enable.auto.commit": False,
+            # 'auto.offset.reset': 'earliest',
+            # "enable.partition.eof": True,
+            # 'enable.metrics.push': False
         }
         self.consumer = Consumer(conf)
 

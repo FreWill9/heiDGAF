@@ -43,6 +43,7 @@ CONSUME_TOPIC = config["environment"]["kafka_topics"]["pipeline"][
     "logserver_to_collector"
 ]
 INPUT_FORMAT_ZEEK = config["environment"]["zeek"]
+ZEEK_KAFKA_PLUGIN_ACTIVATED = config["environment"]["plugin_activated"]
 
 
 class LogCollector:
@@ -110,6 +111,10 @@ class LogCollector:
             timestamp_in (datetime.datetime): Timestamp of entering the pipeline
             message (str): Message to be stored
         """
+        if ZEEK_KAFKA_PLUGIN_ACTIVATED:
+            message_all_types = list(json.loads(message).values())
+            message = ' '.join(str(value) for value in message_all_types)
+            logger.debug(f"message: {message}")
 
         try:
             fields = self.logline_handler.validate_logline_and_get_fields_as_json(

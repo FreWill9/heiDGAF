@@ -28,6 +28,7 @@ FORBIDDEN_FIELD_NAMES = [
     "logline_id",
     "batch_id",
 ]  # field names that are used internally
+
 INPUT_FORMAT_ZEEK = CONFIG["environment"]["zeek"]
 
 
@@ -246,14 +247,12 @@ class ZeekCount(FieldType):
     represented as -.
     """
 
-    def __init__(self, name, optional: str = "False"):
+    def __init__(self, name, optional):
         super().__init__(name)
-        if optional == "True":
-            self.optional = True
-        elif optional == "False":
-            self.optional = False
-        else:
-            raise ValueError(f"Optional type {optional} must be either 'True' or 'False'")
+        try:
+            self.optional = optional
+        except ValueError:
+            raise ValueError(f"Optional type {optional} must be either True or False")
 
     def validate(self, value) -> bool:
         """
@@ -286,12 +285,10 @@ class ZeekInterval(FieldType):
 
     def __init__(self, name, optional: bool = False):
         super().__init__(name)
-        if optional == "True":
-            self.optional = True
-        elif optional == "False":
-            self.optional = False
-        else:
-            raise ValueError(f"Optional type {optional} must be either 'True' or 'False'")
+        try:
+            self.optional = optional
+        except ValueError:
+            raise ValueError(f"Optional type {optional} must be either True or False")
 
     def validate(self, value) -> bool:
         """
@@ -412,6 +409,7 @@ class LoglineHandler:
             True if the logline contains correct fields in the configured format, False otherwise
         """
         parts = logline.split()
+
         number_of_entries = len(parts)
 
         # check number of entries
@@ -559,16 +557,16 @@ class LoglineHandler:
             instance = cls(name=name)
 
         elif cls_name == "ZeekCount":
-            if len_of_field_list != 2:
+            if len_of_field_list != 3:
                 raise ValueError("Invalid ZeekCount parameters")
 
-            instance = cls(name=name)
+            instance = cls(name=name, optional=field_list[2])
 
         elif cls_name == "ZeekInterval":
-            if len_of_field_list != 2:
+            if len_of_field_list != 3:
                 raise ValueError("Invalid ZeekInterval parameters")
 
-            instance = cls(name=name)
+            instance = cls(name=name, optional=field_list[2])
 
         elif cls_name == "ZeekString":
             if len_of_field_list == 3:

@@ -338,7 +338,10 @@ class Inspector:
                 .astype(f"timedelta64[{TIME_TYPE}]")
                 .astype(int)
             )
-            counts[time_indices] = unique_counts
+            try:
+                counts[time_indices] = unique_counts
+            except IndexError:
+                logger.warning(f"Index {time_indices} out of range")
         else:
             logger.warning("Empty messages to inspect.")
 

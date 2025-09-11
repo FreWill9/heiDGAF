@@ -1,11 +1,11 @@
 logging:
   base:
-    debug: false
+    debug: true
   modules:
     log_storage.logserver:
-      debug: false
+      debug: true
     log_collection.collector:
-      debug: false
+      debug: true
     log_collection.batch_handler:
       debug: false
     log_filtering.prefilter:
@@ -24,8 +24,8 @@ pipeline:
         # "../../zeek_input_dir/current/conn.log",
         # "../../zeek_input_dir/batch/conn.log",
         # "../../zeek_input_dir/current/dns.log",
-        # "../../zeek_input_dir/batch/dns.log",
-        "../../zeek_input_dir/shortened_dns.log",
+        "../../zeek_input_dir/batch/dns.log",
+        # "../../zeek_input_dir/shortened_dns.log",
         # "../../zeek_input_dir/shortened_to_bug_dns.log"
          # In container:
         # "zeek_input_dir/batch/dns.log"
@@ -65,7 +65,7 @@ pipeline:
         - [ "qclass_name", ZeekString ]
         - [ "qtype", ZeekCount, "True" ]
         - [ "qtype_name", ZeekString ]
-        - [ "rcode", ZeekCount, "True" ]
+        - [ "rcode", ZeekCount, "False" ]
         - [ "rcode_name", ZeekString, [ "NOERROR" ] ]
     batch_handler:
       batch_size: 1000  # before 10000
@@ -106,6 +106,7 @@ pipeline:
 
 environment:
   zeek: true  # choose if input format is given in zeek logs or dnscollector logs, true -> zeek, false -> dns
+  plugin_activated: false  # choose if the Zeek-Kafka Plugin is used
   kafka_brokers:
     # - hostname: kafka1
     #   port: 8097
@@ -113,12 +114,17 @@ environment:
     #   port: 8098
     # - hostname: kafka3
     #   port: 8099
+    # -
     - hostname: localhost
       port: 9092
     - hostname: localhost
       port: 9093
     - hostname: localhost
       port: 9094
+    #- hostname: localhost
+    #  port: 2323
+    # - hostname: pkc-921jm.us-east-2.aws.confluent.cloud
+    #   port: 9092
   kafka_topics:
     pipeline:
       logserver_in: "pipeline-logserver_in"
