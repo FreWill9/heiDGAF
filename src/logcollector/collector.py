@@ -8,7 +8,7 @@ import uuid
 
 sys.path.append(os.getcwd())    # noqa: E402
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
-from src.base.kafka_handler import ExactlyOnceKafkaConsumeHandler
+from src.base.kafka_handler import ExactlyOnceKafkaConsumeHandler, SimpleKafkaConsumeHandler
 from src.base.logline_handler import LoglineHandler
 from src.base import utils
 from src.logcollector.batch_handler import BufferedBatchSender
@@ -112,8 +112,17 @@ class LogCollector:
             message (str): Message to be stored
         """
         if ZEEK_KAFKA_PLUGIN_ACTIVATED:
-            message_all_types = list(json.loads(message).values())
+            # Parse json to tsv for validation if the input comes from the Zeek Kafka Plugin.
+            # Also add rtt = '-' incase it is missing, the plugin just leaves it blank.
+            rtt_missing = True
+            message_json = json.loads(message)
+            if "rtt" in message_json:
+                rtt_missing = False
+            message_all_types = list(message_json.values())
+            if rtt_missing:
+                message_all_types.insert(8, "-")
             message = ' '.join(str(value) for value in message_all_types)
+
             logger.debug(f"message: {message}")
 
         try:
@@ -121,6 +130,7 @@ class LogCollector:
                 message
             )
         except ValueError:
+            logger.warning("Logline failed")
             self.failed_dns_loglines.insert(
                 dict(
                     message_text=message,

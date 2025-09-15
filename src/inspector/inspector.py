@@ -18,6 +18,7 @@ from src.base.utils import setup_config
 from src.base.kafka_handler import (
     ExactlyOnceKafkaConsumeHandler,
     ExactlyOnceKafkaProduceHandler,
+    SimpleKafkaProduceHandler,
     KafkaMessageFetchException,
 )
 from src.base.log_config import get_logger
@@ -80,7 +81,7 @@ def timed(label: str):      # only for debugging
         yield
     finally:
         dt_ms = (time.perf_counter() - t0) * 1000
-        logger.info("%s took %.0f ms", label, dt_ms)
+        logger.debug("%s took %.0f ms", label, dt_ms)
 
 
 @unique
@@ -103,7 +104,8 @@ class Inspector:
         self.anomalies = []
 
         self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(CONSUME_TOPIC)
-        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
+        # self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
+        self.kafka_produce_handler = SimpleKafkaProduceHandler()
 
         # databases
         self.batch_timestamps = ClickHouseKafkaSender("batch_timestamps")
@@ -536,7 +538,7 @@ class Inspector:
 
             for key, value in buckets.items():
                 logger.info(f"Sending anomalies to detector for {key}.")
-                logger.info(f"Sending anomalies to detector for {value}.")
+                logger.debug(f"Sending anomalies to detector for {value}.")
 
                 suspicious_batch_id = uuid.uuid4()  # generate new suspicious_batch_id
 

@@ -102,6 +102,19 @@ class SimpleKafkaProduceHandler(KafkaProduceHandler):
             'broker.address.family': 'v4',      # fixes weird bug on local machine
             'message.max.bytes': 2097152,       # fixes local bug
             'socket.keepalive.enable': True,    # fixes other bug
+
+            # config for running brokers in confluent cloud cluster
+            # "bootstrap.servers": self.brokers,
+            # key and secret pair for confluent cloud cluster
+            # 'sasl.username': '',
+            # 'sasl.password': '',
+            # Fixed properties
+            # 'security.protocol': 'SASL_SSL',
+            # 'sasl.mechanisms':   'PLAIN',
+            # 'acks':              '1',
+
+            # "enable.idempotence": False,
+            # 'enable.metrics.push': False,
         }
 
         super().__init__(conf)
@@ -118,13 +131,14 @@ class SimpleKafkaProduceHandler(KafkaProduceHandler):
         if not data:
             return
 
-        self.producer.flush()
+        # self.producer.flush()
         self.producer.produce(
             topic=topic,
             key=key,
             value=data,
             callback=kafka_delivery_report,
         )
+        self.producer.poll(0)
 
 
 class ExactlyOnceKafkaProduceHandler(KafkaProduceHandler):
@@ -145,6 +159,20 @@ class ExactlyOnceKafkaProduceHandler(KafkaProduceHandler):
             "enable.idempotence": True,
             'message.max.bytes': 2097152,       # fixes local bug
             'socket.keepalive.enable': True,    # fixes other bug
+
+            # config for running brokers in confluent cloud cluster
+            # "bootstrap.servers": self.brokers,
+            # key and secret pair for confluent cloud cluster
+            # 'sasl.username': '',
+            # 'sasl.password': '',
+            # Fixed properties
+            # 'security.protocol': 'SASL_SSL',
+            # 'sasl.mechanisms':   'PLAIN',
+            # 'acks':              'all',
+
+            # "enable.idempotence": True,
+            # "transactional.id": transactional_id,
+            # 'enable.metrics.push': False,
         }
 
         super().__init__(conf)
@@ -176,6 +204,7 @@ class ExactlyOnceKafkaProduceHandler(KafkaProduceHandler):
                 value=data,
                 callback=kafka_delivery_report,
             )
+            # self.producer.poll(0)
 
             self.commit_transaction_with_retry()
         except Exception:
@@ -241,15 +270,15 @@ class KafkaConsumeHandler(KafkaHandler):
             "auto.offset.reset": "earliest",
             "enable.partition.eof": False,
 
-            "enable.auto.commit": True,
-            "enable.auto.offset.store": False,
-            "session.timeout.ms": 90000,
-            "heartbeat.interval.ms": 3000,
+            "enable.auto.commit": False,
+            "enable.auto.offset.store": True,
+            "session.timeout.ms": 300000,
+            "heartbeat.interval.ms": 10000,
             "max.poll.interval.ms": 600000,
 
             "max.partition.fetch.bytes": 2097152,      # fix local bug
             "fetch.max.bytes": 3145728,                 # fix local bug
-            "auto.commit.interval.ms": 30000,
+            "auto.commit.interval.ms": 10000,
 
             # config for running brokers in confluent cloud cluster
             # "bootstrap.servers": self.brokers,
@@ -444,7 +473,7 @@ class ExactlyOnceKafkaConsumeHandler(KafkaConsumeHandler):
                 value = msg.value().decode("utf-8") if msg.value() else None
                 topic = msg.topic() if msg.topic() else None
 
-                self.consumer.commit(msg)
+                # self.consumer.commit(msg)
 
                 return key, value, topic
         except KeyboardInterrupt:

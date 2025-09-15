@@ -3,7 +3,7 @@ services:
     image: confluentinc/cp-kafka:7.6.1
     hostname: controller
     container_name: controller
-    cpus: 0.25
+    cpus: 0.75
     environment:
       KAFKA_PROCESS_ROLES: controller
       KAFKA_NODE_ID: 100
@@ -24,7 +24,7 @@ services:
       resources:
         limits:
           memory: 1G  # hard cap for the container
-          cpus: 0.25
+          cpus: 0.75
 
   kafka-1:
     image: confluentinc/cp-kafka:7.6.1
@@ -56,6 +56,8 @@ services:
       # Fix topic replicas
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
       KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS: 5
+      # Timout settings
+      KAFKA_CONNECTIONS_MAX_IDLE_MS: 14400000   # worst case 4h
     volumes:
       - kafka1-data:/var/lib/kafka/data
     ports:
@@ -94,6 +96,8 @@ services:
       KAFKA_AUTO_LEADER_REBALANCE_ENABLE: "true"
       KAFKA_LEADER_IMBALANCE_CHECK_INTERVAL_SECONDS: "300"
       KAFKA_LEADER_IMBALANCE_PER_BROKER_PERCENTAGE: "5"
+      # Timout settings
+      KAFKA_CONNECTIONS_MAX_IDLE_MS: 14400000   # worst case 4h
     volumes:
       - kafka2-data:/var/lib/kafka/data
     ports:
@@ -132,6 +136,8 @@ services:
       KAFKA_AUTO_LEADER_REBALANCE_ENABLE: "true"
       KAFKA_LEADER_IMBALANCE_CHECK_INTERVAL_SECONDS: "300"
       KAFKA_LEADER_IMBALANCE_PER_BROKER_PERCENTAGE: "5"
+      # Timout settings
+      KAFKA_CONNECTIONS_MAX_IDLE_MS: 14400000   # worst case 4h
     volumes:
       - kafka3-data:/var/lib/kafka/data
     ports:

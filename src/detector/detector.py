@@ -312,7 +312,7 @@ class Detector:
                 y_pred = self.model.predict_proba(
                     self._get_features(message["domain_name"])
                 )
-            logger.info(f"Prediction: {y_pred}")
+            logger.debug(f"Prediction: {y_pred}")
             if np.argmax(y_pred, axis=1) == 1 and y_pred[0][1] > THRESHOLD:
                 logger.info("Append malicious request to warning.")
                 warning = {

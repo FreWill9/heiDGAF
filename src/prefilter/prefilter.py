@@ -12,6 +12,8 @@ from src.base.logline_handler import LoglineHandler
 from src.base.kafka_handler import (
     ExactlyOnceKafkaConsumeHandler,
     ExactlyOnceKafkaProduceHandler,
+    SimpleKafkaConsumeHandler,
+    SimpleKafkaProduceHandler,
     KafkaMessageFetchException,
 )
 from src.base.log_config import get_logger
@@ -52,7 +54,8 @@ class Prefilter:
 
         self.logline_handler = LoglineHandler()
         self.kafka_consume_handler = ExactlyOnceKafkaConsumeHandler(CONSUME_TOPIC)
-        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
+        # self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
+        self.kafka_produce_handler = SimpleKafkaProduceHandler()
 
         # databases
         self.batch_timestamps = ClickHouseKafkaSender("batch_timestamps")

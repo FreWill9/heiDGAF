@@ -10,7 +10,7 @@ import marshmallow_dataclass
 sys.path.append(os.getcwd())    # noqa: E402
 from src.base.data_classes.batch import Batch
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
-from src.base.kafka_handler import ExactlyOnceKafkaProduceHandler
+from src.base.kafka_handler import ExactlyOnceKafkaProduceHandler, SimpleKafkaProduceHandler
 from src.base.utils import setup_config
 from src.base.log_config import get_logger
 
@@ -235,11 +235,16 @@ class BufferedBatch:
             )
 
             # Move data from batch to buffer
-            self.buffer[key] = self.batch[key]
-            del self.batch[key]
-
-            # Batch ID is not needed anymore
-            del self.batch_id[key]
+            try:
+                self.buffer[key] = self.batch[key]
+                del self.batch[key]
+                # Batch ID is not needed anymore
+                del self.batch_id[key]
+            except KeyError:
+                logger.warning(f"Bug: {key} not found in batch")
+                self.buffer = {}
+                self.batch = {}
+                self.batch_id = {}
 
             self.fill_levels.insert(
                 dict(
@@ -344,7 +349,8 @@ class BufferedBatchSender:
         self.batch = BufferedBatch()
         self.timer = None
 
-        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
+        # self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
+        self.kafka_produce_handler = SimpleKafkaProduceHandler()
 
         # databases
         self.logline_timestamps = ClickHouseKafkaSender("logline_timestamps")

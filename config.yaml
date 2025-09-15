@@ -3,9 +3,9 @@ logging:
     debug: true
   modules:
     log_storage.logserver:
-      debug: true
+      debug: false
     log_collection.collector:
-      debug: true
+      debug: false
     log_collection.batch_handler:
       debug: false
     log_filtering.prefilter:
@@ -20,11 +20,12 @@ pipeline:
     logserver:
       input_files: [
         # "../../file.txt",
+        # "../../zeek_input_dir/zeek-cic-bell-dns.log"
         # "../../DNS_collector_input_dir/output.txt"
         # "../../zeek_input_dir/current/conn.log",
         # "../../zeek_input_dir/batch/conn.log",
         # "../../zeek_input_dir/current/dns.log",
-        "../../zeek_input_dir/batch/dns.log",
+        # "../../zeek_input_dir/batch/dns.log",
         # "../../zeek_input_dir/shortened_dns.log",
         # "../../zeek_input_dir/shortened_to_bug_dns.log"
          # In container:
@@ -68,7 +69,7 @@ pipeline:
         - [ "rcode", ZeekCount, "False" ]
         - [ "rcode_name", ZeekString, [ "NOERROR" ] ]
     batch_handler:
-      batch_size: 1000  # before 10000
+      batch_size: 2000  # before 10000
       batch_timeout: 30.0
       subnet_id:
         ipv4_prefix_length: 24
@@ -106,7 +107,7 @@ pipeline:
 
 environment:
   zeek: true  # choose if input format is given in zeek logs or dnscollector logs, true -> zeek, false -> dns
-  plugin_activated: false  # choose if the Zeek-Kafka Plugin is used
+  plugin_activated: true  # choose if the Zeek-Kafka Plugin is used
   kafka_brokers:
     # - hostname: kafka1
     #   port: 8097

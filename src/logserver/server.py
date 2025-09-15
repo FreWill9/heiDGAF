@@ -11,6 +11,7 @@ sys.path.append(os.getcwd())    # noqa: E402
 from src.base.kafka_handler import (
     SimpleKafkaConsumeHandler,
     ExactlyOnceKafkaProduceHandler,
+    SimpleKafkaProduceHandler,
 )
 from src.base.clickhouse_kafka_sender import ClickHouseKafkaSender
 from src.base.utils import setup_config
@@ -41,7 +42,8 @@ class LogServer:
 
     def __init__(self) -> None:
         self.kafka_consume_handler = SimpleKafkaConsumeHandler(CONSUME_TOPIC)
-        self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
+        # self.kafka_produce_handler = ExactlyOnceKafkaProduceHandler()
+        self.kafka_produce_handler = SimpleKafkaProduceHandler()
 
         # databases
         self.server_logs = ClickHouseKafkaSender("server_logs")
